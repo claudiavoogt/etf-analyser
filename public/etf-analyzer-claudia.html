@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF Portefeuille Analyzer v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paars:#6B2D84;
+  --fuchsia:#E21B70;
+  --navy:#1A1F36;
+  --mint:#3EDCB1;
+  --oranje:#FF6B35;
+  --smoke:#F5F5F5;
+  --wit:#FFFFFF;
+  --gradient-sunset:linear-gradient(135deg,#6B2D84 0%,#FF6B35 100%);
+  --gradient-dark:linear-gradient(135deg,#1A1F36 0%,#6B2D84 100%);
+  --gradient-cta:linear-gradient(135deg,#E21B70 0%,#6B2D84 100%);
+  --border:#2e3255;
+  --text-muted:#8890b8;
+}
+body{font-family:'Lora',serif;background:var(--navy);color:var(--wit);min-height:100vh;font-size:15px;line-height:1.65}
+
+/* HEADER */
+.header{background:var(--gradient-dark);padding:0;border-bottom:2px solid var(--paars)}
+.header-inner{max-width:1160px;margin:0 auto;padding:24px 28px;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;color:var(--wit)}
+.header-title span{color:var(--mint)}
+.header-sub{font-family:'Lora',serif;font-style:italic;font-size:13px;color:var(--text-muted);margin-top:3px}
+.header-pill{background:var(--gradient-cta);color:var(--wit);font-family:'Montserrat',sans-serif;font-weight:700;font-size:11px;letter-spacing:1px;padding:6px 14px;border-radius:20px;text-transform:uppercase}
+
+/* LAYOUT */
+.container{max-width:1160px;margin:0 auto;padding:32px 28px}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
+.metric{background:#212645;border:1px solid var(--border);border-radius:12px;padding:16px 12px;text-align:center}
+.metric-label{font-family:'Montserrat',sans-serif;font-weight:400;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#aab0cc;margin-bottom:8px}
+.metric-val{font-family:'Montserrat',sans-serif;font-weight:800;font-size:24px;letter-spacing:-0.5px;color:var(--wit)}
+
+/* CARDS */
+.card{background:#212645;border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px}
+.card.core{border:2px solid var(--paars);background:linear-gradient(135deg,rgba(107,45,132,0.15) 0%,rgba(33,38,69,1) 60%)}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+
+/* TAGS & BADGES */
+.tag{font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;padding:5px 12px;border-radius:20px;display:inline-block}
+.tag-core{background:var(--gradient-cta);color:var(--wit)}
+.tag-etf{background:rgba(255,255,255,0.08);color:var(--text-muted)}
+.tag-herb{background:rgba(62,220,177,0.15);color:var(--mint)}
+.tag-uit{background:rgba(226,27,112,0.15);color:var(--fuchsia)}
+.tag-gold{background:rgba(255,200,0,0.15);color:#ffd24d}
+.tag-silver{background:rgba(180,180,180,0.15);color:#c8c8c8}
+.tag-bronze{background:rgba(255,107,53,0.15);color:var(--oranje)}
+.tag-neutral{background:rgba(62,220,177,0.1);color:var(--mint)}
+.tag-negative{background:rgba(226,27,112,0.15);color:var(--fuchsia)}
+
+/* FORM */
+.row2{display:grid;grid-template-columns:1fr 1fr 100px;gap:12px;align-items:end}
+.row4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:12px;align-items:end;margin-top:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;margin-top:12px}
+label{font-family:'Montserrat',sans-serif;font-weight:400;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;color:#aab0cc;display:block;margin-bottom:6px}
+label span{font-weight:400;text-transform:none;letter-spacing:0}
+input,select{width:100%;background:#161930;border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:14px;font-family:'Lora',serif;color:var(--wit);outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--paars)}
+input::placeholder{color:#4a5070}
+select option{background:#1A1F36}
+.status-ok{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:var(--mint);margin-top:10px;display:flex;align-items:center;gap:5px;letter-spacing:0.3px}
+.status-ok::before{content:'✓';font-size:13px}
+
+/* BUTTONS */
+.btn{font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.5px;padding:10px 20px;border-radius:8px;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--wit);transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--paars);background:rgba(107,45,132,0.2)}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+.btn-primary{background:var(--gradient-cta);border-color:transparent;color:var(--wit)}
+.btn-primary:hover{opacity:0.9;background:var(--gradient-cta)}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-danger{border-color:rgba(226,27,112,0.3);color:var(--fuchsia)}
+.btn-danger:hover{background:rgba(226,27,112,0.1)}
+
+/* SUGGEST */
+.sug-box{background:#1e2444;border:1px solid var(--paars);border-radius:8px;overflow-y:auto;max-height:320px;position:absolute;z-index:30;width:100%;top:calc(100% + 4px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.sug-item{padding:11px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);color:var(--wit);transition:background .15s}
+.sug-item:last-child{border-bottom:none}
+.sug-item:hover{background:rgba(107,45,132,0.3);color:var(--mint)}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-card{background:#212645;border:1px solid var(--border);border-radius:14px;padding:22px}
+.chart-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mint);margin-bottom:14px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.legend-item{display:flex;align-items:center;gap:5px;font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:0.3px;color:var(--text-muted)}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* TABLE */
+.overzicht{background:#212645;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px;overflow-x:auto}
+.overzicht-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mint);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{text-align:left;padding:6px 8px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)}
+td{padding:9px 8px;border-bottom:1px solid rgba(46,50,85,0.6);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(107,45,132,0.08)}
+
+/* FLAGS */
+.flags-card{background:#212645;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px}
+.flags-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fuchsia);margin-bottom:14px}
+.flag-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(46,50,85,0.5);font-size:13px;line-height:1.55}
+.flag-row:last-child{border-bottom:none}
+.flag-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px}
+.flag-red .flag-icon{background:rgba(226,27,112,0.2);color:var(--fuchsia)}
+.flag-warn .flag-icon{background:rgba(255,107,53,0.2);color:var(--oranje)}
+
+/* PROFIEL */
+.profiel-card{background:linear-gradient(135deg,rgba(62,220,177,0.08) 0%,rgba(33,38,69,1) 60%);border:1.5px solid rgba(62,220,177,0.3);border-radius:14px;padding:22px;margin-bottom:20px}
+.profiel-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mint);margin-bottom:16px}
+.profiel-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.profiel-advice{margin-top:14px;padding:12px 16px;border-radius:8px;background:rgba(62,220,177,0.07);border:1px solid rgba(62,220,177,0.2);font-family:'Montserrat',sans-serif;font-size:12px;color:var(--mint);line-height:1.6}
+.profiel-advice strong{font-weight:700}
+@media(max-width:720px){.profiel-grid{grid-template-columns:1fr}}
+
+/* DISCLAIMER */
+.disclaimer{background:linear-gradient(135deg,rgba(107,45,132,0.2) 0%,rgba(226,27,112,0.1) 100%);border:1px solid rgba(107,45,132,0.4);border-radius:12px;padding:18px 22px;margin-bottom:24px}
+.disclaimer-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--mint);margin-bottom:6px}
+.disclaimer-text{font-family:'Lora',serif;font-style:italic;font-size:13px;color:var(--text-muted);line-height:1.6}
+
+/* ACTIONS */
+.actions{display:flex;justify-content:flex-end;gap:10px}
+.divider{height:1px;background:var(--border);margin:6px 0 20px}
+
+@media print{
+  @page{margin:15mm 10mm;size:A4 landscape}
+  body{background:white!important;color:#1A1F36!important;font-size:11px}
+  .header{background:white!important;border-bottom:2px solid #6B2D84;padding:8px 0}
+  .header-title{color:#1A1F36!important;font-size:18px}
+  .header-sub{color:#555!important}
+  .container{padding:10px 0!important;max-width:100%!important}
+  .card,.metric,.chart-card,.overzicht,.flags-card,.disclaimer{background:white!important;border-color:#ccc!important;box-shadow:none!important}
+  .btn,.add-wrap,.profiel-section,.etf-card,.charts-grid{display:none!important}
+  .output-section{display:block!important}
+  .metrics{display:flex!important;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .metric{flex:1;min-width:100px;border:1px solid #ccc!important;border-radius:6px;padding:8px 10px}
+  .metric-label{font-size:9px;letter-spacing:1px;color:#666!important;text-transform:uppercase}
+  .metric-val{font-size:20px;font-weight:800;color:#1A1F36!important}
+  .metric-val.red{color:#c0003a!important}
+
+  /* Tabel */
+  .overzicht{overflow:visible!important;border:1px solid #ccc!important;border-radius:8px;padding:14px!important;margin-bottom:12px}
+  .overzicht-title{color:#6B2D84!important;font-size:10px;letter-spacing:1.5px;margin-bottom:10px}
+  table{width:100%!important;border-collapse:collapse!important;table-layout:auto!important;font-size:10px}
+  th{background:#f4f0f8!important;color:#1A1F36!important;font-family:'Montserrat',sans-serif!important;font-weight:700!important;font-size:9px!important;letter-spacing:.5px;text-transform:uppercase;padding:6px 5px!important;border-bottom:2px solid #6B2D84!important;white-space:nowrap}
+  td{padding:6px 5px!important;border-bottom:1px solid #e8e8e8!important;white-space:normal!important;overflow:visible!important;text-overflow:unset!important;color:#1A1F36!important;font-size:10px!important;vertical-align:middle}
+  td:first-child{font-weight:600;color:#1A1F36!important;min-width:140px}
+  tr:last-child td{border-bottom:none!important}
+  /* Badges in print */
+  .tag{font-size:8px!important;padding:2px 6px!important;border-radius:3px!important;border:1px solid #ccc!important;display:inline-block!important}
+  .tag-gold{background:#fff3cd!important;color:#856404!important;border-color:#ffc107!important}
+  .tag-silver{background:#e2e3e5!important;color:#383d41!important;border-color:#adb5bd!important}
+  .tag-bronze{background:#f5e6d3!important;color:#7d4a1e!important;border-color:#d4956a!important}
+  .tag-neutral{background:#f8d7da!important;color:#721c24!important;border-color:#f5c6cb!important}
+  .tag-negative{background:#f8d7da!important;color:#721c24!important;border-color:#f5c6cb!important}
+  .tag-herb{background:#d4edda!important;color:#155724!important;border-color:#c3e6cb!important}
+  .tag-uit{background:#fff3cd!important;color:#856404!important;border-color:#ffc107!important}
+
+  /* Vlaggen */
+  .flags-card{border:1px solid #ccc!important;border-radius:8px;padding:12px!important;margin-bottom:12px;page-break-inside:avoid}
+  .flags-title{color:#6B2D84!important;font-size:10px;letter-spacing:1.5px;font-weight:800;margin-bottom:8px}
+  .flag-item{padding:6px 0!important;border-bottom:1px solid #eee!important;font-size:10px;color:#1A1F36!important}
+  .flag-item.red{border-left:3px solid #c0003a!important;padding-left:8px!important}
+  .flag-item.orange{border-left:3px solid #d97706!important;padding-left:8px!important}
+  .flag-item.ok{border-left:3px solid #15803d!important;padding-left:8px!important}
+  .flag-icon{display:none}
+
+  /* Disclaimer */
+  .disclaimer{border:1px solid #ccc!important;border-radius:8px;padding:10px!important;page-break-inside:avoid}
+  .disclaimer-title{color:#6B2D84!important;font-size:10px;font-weight:700;margin-bottom:4px}
+  .disclaimer-text{font-size:9px!important;color:#555!important;line-height:1.5}
+}
+@media(max-width:720px){
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .row2{grid-template-columns:1fr 1fr}
+  .row2 .weight-col{grid-column:span 2}
+  .row4{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}
+  .header-inner{padding:18px 20px}
+  .container{padding:20px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-title">ETF Portefeuille <span>Analyzer</span></div>
+      <div class="header-sub">Vul je selectie in en zie direct de analyse</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">Kosten (TER)</div><div class="metric-val" id="m-ter">—</div></div>
+    <div class="metric"><div class="metric-label">Weging</div><div class="metric-val" id="m-weight">0%</div></div>
+    <div class="metric"><div class="metric-label">Vlaggen</div><div class="metric-val" id="m-flags">0</div></div>
+    <div class="metric"><div class="metric-label">Herbeleggen</div><div class="metric-val" id="m-herb">—</div></div>
+    <div class="metric"><div class="metric-label">Uitkeren</div><div class="metric-val" id="m-uit">—</div></div>
+  </div>
+
+  <div class="profiel-card">
+    <div class="profiel-title">Beleggersprofiel</div>
+    <div class="profiel-grid">
+      <div>
+        <label>Hoe lang wil je beleggen? <span style="color:var(--fuchsia)">*</span></label>
+        <select id="horizon" onchange="updateProfiel()">
+          <option value="">— Kies horizon —</option>
+          <option value="10-15">10–15 jaar</option>
+          <option value="15-20">15–20 jaar</option>
+          <option value="20+">Meer dan 20 jaar</option>
+        </select>
+      </div>
+      <div>
+        <label>Maandinleg <span>(€)</span> <span style="color:var(--fuchsia)">*</span></label>
+        <input type="number" id="maandinleg" placeholder="bijv. 250" min="25" step="25" oninput="updateProfiel()">
+      </div>
+    </div>
+    <div id="profiel-advice" class="profiel-advice" style="display:none"></div>
+    <div id="profiel-gate" style="margin-top:12px;padding:10px 16px;border-radius:8px;background:rgba(226,27,112,0.07);border:1px solid rgba(226,27,112,0.25);font-family:'Montserrat',sans-serif;font-size:12px;color:var(--fuchsia);display:block">Vul eerst de verplichte velden in om je ETF-selectie te kunnen invullen.</div>
+  </div>
+
+  <div class="card core" id="core-card" style="display:none">
+    <div class="card-header">
+      <span class="tag tag-core">Core ETF</span>
+      <span id="core-weging-hint" style="font-family:'Lora',serif;font-style:italic;font-size:13px;color:var(--text-muted)">weging 50–80%</span>
+    </div>
+    <div class="row2">
+      <div>
+        <label>ISIN</label>
+        <input type="text" id="core-isin" placeholder="bijv. IE00B4L5Y983" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();onISIN('core')">
+      </div>
+      <div style="position:relative">
+        <label>Naam <span>(naam, sector of regio)</span></label>
+        <input type="text" id="core-name" placeholder="Naam, sector of regio — typ / voor alles" oninput="onName('core')" onfocus="onName('core')" onblur="setTimeout(()=>hideSug('core'),200)">
+        <div id="core-sug" class="sug-box" style="display:none"></div>
+      </div>
+      <div class="weight-col">
+        <label>Weging %</label>
+        <input type="number" id="core-weight" placeholder="60" min="1" max="99" step="1" oninput="updateAll()">
+      </div>
+    </div>
+    <div class="row4">
+      <div><label>Sector</label><input type="text" id="core-sector" placeholder="Wordt ingevuld" oninput="updateAll()"></div>
+      <div><label>Regio</label><input type="text" id="core-region" placeholder="Wordt ingevuld" oninput="updateAll()"></div>
+      <div><label>MS Rating <span style="font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400">(zelf invullen)</span></label>
+        <select id="core-ms" onchange="updateAll()">
+          <option value="">—</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option>
+        </select>
+      </div>
+      <div><label>Dividend</label>
+        <select id="core-div" onchange="updateAll()">
+          <option value="">—</option><option>Herbeleggen</option><option>Uitkeren</option>
+        </select>
+      </div>
+      <div><label>Kosten (TER) %</label><input type="number" id="core-ter" placeholder="0.20" step="0.01" oninput="updateAll()"></div>
+      <div><label>Fondsomvang <span style="font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400">(€ mln)</span></label><input type="number" id="core-aum" placeholder="bijv. 5000" min="0" step="100" oninput="updateAll()"></div>
+      <div><label>Aantal bedrijven</label><input type="number" id="core-holdings" placeholder="bijv. 1300" min="0" step="1" oninput="updateAll()"></div>
+    </div>
+    <div class="row3">
+      <div><label>Rendement 5 jaar <span>(% p.j.)</span></label><input type="number" id="core-r5" placeholder="bijv. 12.5" step="0.1" oninput="updateAll()"></div>
+      <div><label>Rendement 10 jaar <span>(% p.j.)</span></label><input type="number" id="core-r10" placeholder="bijv. 11.0" step="0.1" oninput="updateAll()"></div>
+      <div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="core-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div>
+    </div>
+    <div id="core-status"></div>
+  </div>
+
+  <div id="sat-wrap"></div>
+
+  <div class="add-wrap" id="add-wrap" style="margin-bottom:28px;display:none">
+    <button class="btn" onclick="addSat()" id="add-btn">+ ETF toevoegen</button>
+  </div>
+
+  <div id="output" style="display:none">
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Sector</div>
+        <div class="legend" id="leg-s"></div>
+        <div style="position:relative;height:200px"><canvas id="ch-s"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Regio</div>
+        <div class="legend" id="leg-r"></div>
+        <div style="position:relative;height:200px"><canvas id="ch-r"></canvas></div>
+      </div>
+    </div>
+
+    <div class="overzicht">
+      <div class="overzicht-title">Overzicht ETF's</div>
+      <table>
+        <thead><tr>
+          <th style="width:26%">Naam</th>
+          <th style="width:7%;text-align:right">Weging</th>
+          <th style="width:7%;text-align:right">TER</th>
+          <th style="width:12%">Sector</th>
+          <th style="width:12%">Regio</th>
+          <th style="width:9%;text-align:center">MS Rating</th>
+          <th style="width:8%;text-align:center">DIV</th>
+          <th style="width:7%;text-align:right">OMV</th>
+          <th style="width:7%;text-align:right">Bedrijven</th>
+          <th style="width:7%;text-align:right">5J</th>
+          <th style="width:7%;text-align:right">10J</th>
+          <th style="width:7%;text-align:right">15J</th>
+        </tr></thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+    <div class="flags-card" id="flags-card" style="display:none">
+      <div class="flags-title">⚑ Aandachtspunten</div>
+      <div id="flags-list"></div>
+    </div>
+
+    <div class="disclaimer">
+      <div class="disclaimer-title">Belangrijk</div>
+      <div class="disclaimer-text">Deze analyse is gebaseerd op door jou ingevoerde gegevens en een database die periodiek wordt bijgewerkt. Controleer alle informatie — waaronder MS Rating, TER en dividend type — altijd zelf via officiële bronnen zoals Morningstar.nl en de factsheet van de ETF. Deze tool is een hulpmiddel, geen beleggingsadvies. Aan de uitkomsten kunnen geen rechten worden ontleend.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="window.print()">↓ Sla op als PDF</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DB=[{name:"iShares Core MSCI World UCITS ETF",isin:"IE00B4L5Y983",namPct:71,sector:"Breed markt",region:"Wereldwijd",ter:0.2,div:"Herbeleggen"},{name:"iShares MSCI USA ESG Enhanced CTB UCITS ETF",isin:"IE00BHZPJ908",sector:"Breed markt",region:"Noord-Amerika",ter:0.07,div:"Herbeleggen"},{name:"State Street SPDR MSCI World (Acc) UCITS ETF",isin:"IE00BFY0GT14",namPct:71,sector:"Breed markt",region:"Wereldwijd",ter:0.12,div:"Herbeleggen"},{name:"iShares S&P 500 Info Technology Sector UCITS ETF",isin:"IE00B3WJKG14",sector:"Technologie",region:"Noord-Amerika",ter:0.15,div:"Herbeleggen"},{name:"State St SPDR MSCI AllCntryWrld IM (Acc) UCITS ETF",isin:"IE00B3YLTY66",namPct:65,sector:"Breed markt",region:"Wereldwijd",ter:0.17,div:"Herbeleggen"},{name:"iShares Core MSCI EM IMI UCITS ETF",isin:"IE00BKM4GZ66",sector:"Breed markt",region:"Opkomende markten wereldwijd",ter:0.18,div:"Herbeleggen"},{name:"iShares STOXX Europe 600 (DE) UCITS ETF",isin:"DE0002635307",sector:"Breed markt",region:"Europa",ter:0.2,div:"Uitkeren"},{name:"VanEck Defense UCITS ETF",isin:"IE000YYE6WK5",namPct:48,sector:"Defense",region:"Wereldwijd",ter:0.55,div:"Herbeleggen"},{name:"VanEck Semiconductor UCITS ETF",isin:"IE00BMC38736",namPct:83,sector:"Technologie",region:"Wereldwijd",ter:0.35,div:"Herbeleggen"},{name:"iShares MSCI World Small Cap UCITS ETF",isin:"IE00BF4RFH31",namPct:68,sector:"Breed markt",region:"Wereldwijd",ter:0.35,div:"Herbeleggen"},{name:"Xtrackers MSCI World ESG UCITS ETF",isin:"IE00BZ02LR44",namPct:71,sector:"Breed markt",region:"Wereldwijd",ter:0.2,div:"Herbeleggen"},{name:"Vanguard S&P 500 Dist UCITS ETF",isin:"IE00B3XXRP09",sector:"Breed markt",region:"Noord-Amerika",ter:0.07,div:"Uitkeren"},{name:"iShares Core MSCI Europe EUR (Acc) UCITS ETF",isin:"IE00B4K48X80",sector:"Breed markt",region:"Europa",ter:0.12,div:"Herbeleggen"},{name:"Vanguard FTSE All-World UCITS Acc ETF",isin:"IE00BK5BQT80",namPct:65,sector:"Breed markt",region:"Wereldwijd",ter:0.19,div:"Herbeleggen"},{name:"iShares MSCI EM IMI Screened UCITS ETF",isin:"IE00BFNM3P36",sector:"Breed markt",region:"Opkomende markten wereldwijd",ter:0.18,div:"Herbeleggen"},{name:"VanEck Morningstar Dvlp Mkts Dvd Leaders UCITS ETF",isin:"NL0011683594",namPct:32,sector:"Dividenden",region:"Wereldwijd",ter:0.38,div:"Uitkeren"},{name:"Vanguard FTSE All-World UCITS Dist ETF",isin:"IE00B3RBWM25",namPct:65,sector:"Breed markt",region:"Wereldwijd",ter:0.19,div:"Uitkeren"},{name:"VanEck Gold Miners UCITS ETF",isin:"IE00BQQP9F84",namPct:46,sector:"Grondstoffen",region:"Wereldwijd",ter:0.53,div:"Herbeleggen"},{name:"iShares Core S&P 500 (Acc) UCITS ETF",isin:"IE00B5BMR087",sector:"Breed markt",region:"Noord-Amerika",ter:0.07,div:"Herbeleggen"},{name:"VanEck S&P Global Mining UCITS ETF",isin:"IE00BDFBTQ78",namPct:18,sector:"Grondstoffen",region:"Wereldwijd",ter:0.5,div:"Herbeleggen"},{name:"State Street SPDR MSCI World Tech (Acc) UCITS ETF",isin:"IE00BYTRRD19",namPct:71,sector:"Technologie",region:"Wereldwijd",ter:0.3,div:"Herbeleggen"},{name:"VanEck AEX UCITS ETF",isin:"NL0009272749",sector:"Breed markt",region:"Europa",ter:0.3,div:"Uitkeren"},{name:"VanEck World Equal Weight Screened UCITS ETF",isin:"NL0010408704",namPct:22,sector:"Breed markt",region:"Wereldwijd",ter:0.2,div:"Uitkeren"},{name:"Amundi Core Stoxx Europe 600 (Acc) UCITS ETF",isin:"LU0908500753",sector:"Breed markt",region:"Europa",ter:0.07,div:"Herbeleggen"},{name:"iShares NASDAQ 100 Acc UCITS ETF",isin:"IE00B53SZB19",sector:"Technologie",region:"Noord-Amerika",ter:0.3,div:"Herbeleggen"},{name:"iShares MSCI Europe SRI UCITS ETF",isin:"IE00B52VJ196",sector:"Breed markt - ESG",region:"Europa",ter:0.2,div:"Herbeleggen"},{name:"iShares STOXX EU 600 Banks UCITS ETF (DE)",isin:"DE000A0F5UJ7",sector:"Financials",region:"Europa",ter:0.46,div:"Uitkeren"},{name:"iShares MSCI India UCITS ETF",isin:"IE00BZCQB185",sector:"Breed markt",region:"Azië/Pacific",ter:0.65,div:"Herbeleggen"},{name:"Vanguard FTSE All-World High Dvd Yield UCITS ETF",isin:"IE00B8GKDB10",namPct:60,sector:"Dividenden",region:"Wereldwijd",ter:0.29,div:"Uitkeren"},{name:"Xtrackers AI & Big Data UCITS ETF",isin:"IE00BGV5VN51",namPct:67,sector:"Technologie",region:"Wereldwijd",ter:0.35,div:"Herbeleggen"},{name:"iShares Core EURO STOXX 50 UCITS ETF",isin:"IE00B53L3W79",sector:"Breed markt",region:"Europa",ter:0.1,div:"Herbeleggen"},{name:"iShares Core S&P 500 (Dist) UCITS ETF",isin:"IE0031442068",sector:"Breed markt",region:"Noord-Amerika",ter:0.07,div:"Uitkeren"},{name:"iShares Edge MSCI World Momentum Factor UCITS ETF",isin:"IE00BP3QZ825",namPct:71,sector:"Factor",region:"Wereldwijd",ter:0.25,div:"Herbeleggen"},{name:"iShares MSCI Europe Quality Dividend Adv UCITS ETF",isin:"IE00BYYHSM20",sector:"Dividenden",region:"Europa",ter:0.28,div:"Uitkeren"},{name:"iShares STOXX EU 600 Oil & Gas UCITS ETF (DE)",isin:"DE000A0H08M3",sector:"Energie",region:"Europa",ter:0.46,div:"Uitkeren"},{name:"JPM Carbon Transition Global Eq (CTB) UCITS ETF",isin:"IE00BMDWYZ92",namPct:65,sector:"Breed markt",region:"Wereldwijd",ter:0.19,div:"Herbeleggen"},{name:"Amundi Core Nasdaq-100 Swap (Acc) UCITS ETF",isin:"LU1829221024",sector:"Technologie",region:"Noord-Amerika",ter:0.22,div:"Herbeleggen"},{name:"iShares Core MSCI Europe UCITS ETF",isin:"IE00B1YZSC51",sector:"Breed markt",region:"Europa",ter:0.12,div:"Uitkeren"},{name:"iShares Core EURO STOXX 50 EUR (Dist) UCITS ETF",isin:"IE0008471009",sector:"Breed markt",region:"Europa",ter:0.1,div:"Uitkeren"},{name:"iShares MSCI Japan USD (Dist) UCITS ETF",isin:"IE00B02KXH56",sector:"Breed markt",region:"Azië/Pacific",ter:0.12,div:"Uitkeren"},{name:"iShares AEX ETF",isin:"IE00B0M62Y33",sector:"Breed markt",region:"Europa",ter:0.3,div:"Uitkeren"},{name:"iShares Edge MSCI World Quality Factor UCITS ETF",isin:"IE00BP3QZ601",namPct:71,sector:"Factor",region:"Wereldwijd",ter:0.3,div:"Herbeleggen"},{name:"iShares Automation & Robotics USD (Acc) UCITS ETF",isin:"IE00BYZK4552",namPct:52,sector:"Technologie",region:"Wereldwijd",ter:0.4,div:"Herbeleggen"},{name:"iShares MSCI World Quality Dividend ESG UCITS ETF",isin:"IE00BYYHSQ67",namPct:68,sector:"Breed markt - ESG",region:"Wereldwijd",ter:0.38,div:"Herbeleggen"},{name:"Vanguard FTSE Emerging Markets UCITS ETF",isin:"IE00B3VVMM84",sector:"Breed markt",region:"Opkomende markten wereldwijd",ter:0.17,div:"Uitkeren"},{name:"Vanguard FTSE Developed Europe UCITS ETF",isin:"IE00B945VV12",sector:"Breed markt",region:"Europa",ter:0.1,div:"Uitkeren"},{name:"VanEck Global Real Estate UCITS ETF",isin:"NL0009690239",namPct:58,sector:"Vastgoed",region:"Wereldwijd",ter:0.25,div:"Uitkeren"},{name:"State Street SPDR MSCI Eur Financl (Acc) UCITS ETF",isin:"IE00BKWQ0G16",sector:"Financials",region:"Europa",ter:0.18,div:"Herbeleggen"},{name:"iShares MSCI World Screened UCITS ETF",isin:"IE00BFNM3J75",namPct:71,sector:"Breed markt",region:"Wereldwijd",ter:0.2,div:"Herbeleggen"},{name:"Amundi MSCI World Health Care UCITS ETF",isin:"LU0533033238",namPct:69,sector:"Gezondheidszorg",region:"Wereldwijd",ter:0.3,div:"Herbeleggen"},{name:"iShares Listed Private Equity UCITS ETF",isin:"IE00B1TXHL60",namPct:57,sector:"Alternatief",region:"Wereldwijd",ter:0.75,div:"Uitkeren"},{name:"iShares MSCI World SRI UCITS ETF",isin:"IE00BYX2JD69",namPct:67,sector:"Breed markt - ESG",region:"Wereldwijd",ter:0.2,div:"Herbeleggen"},{name:"VanEck Video Gaming and eSports UCITS ETF",isin:"IE00BYWQWR46",namPct:24,sector:"Technologie",region:"Wereldwijd",ter:0.55,div:"Herbeleggen"},{name:"Amundi MSCI New Energy UCITS ETF",isin:"FR0010524777",namPct:43,sector:"Energie",region:"Wereldwijd",ter:0.59,div:"Uitkeren"},{name:"iShares Core MSCI Japan IMI UCITS ETF",isin:"IE00B4L5YX21",sector:"Breed markt",region:"Azië/Pacific",ter:0.12,div:"Herbeleggen"},{name:"Amundi MSCI Robotics & AI UCITS ETF",isin:"LU1861132840",namPct:52,sector:"Technologie",region:"Wereldwijd",ter:0.4,div:"Herbeleggen"},{name:"L&G Artificial Intelligence UCITS ETF",isin:"IE00BK5BCD43",namPct:57,sector:"Technologie",region:"Wereldwijd",ter:0.49,div:"Herbeleggen"},{name:"Vanguard FTSE Developed World UCITS ETF",isin:"IE00BKX55T58",namPct:71,sector:"Breed markt",region:"Ontwikkelde markten wereldwijd",ter:0.12,div:"Uitkeren"},{name:"State Street SPDR S&P 500 Leaders (Acc) UCITS ETF",isin:"IE00BH4GPZ28",sector:"Breed markt",region:"Noord-Amerika",ter:0.03,div:"Herbeleggen"},{name:"iShares Core DAX (DE) UCITS ETF",isin:"DE0005933931",sector:"Breed markt",region:"Europa",ter:0.16,div:"Herbeleggen"},{name:"iShares S&P 500 Health Care Sector UCITS ETF",isin:"IE00B43HR379",sector:"Gezondheidszorg",region:"Noord-Amerika",ter:0.15,div:"Herbeleggen"},{name:"iShares Euro Dividend UCITS ETF",isin:"IE00B0M62S72",sector:"Dividenden",region:"Europa",ter:0.4,div:"Uitkeren"},{name:"iShares Digital Security USD (Acc) UCITS ETF",isin:"IE00BG0J4C88",namPct:57,sector:"Technologie",region:"Wereldwijd",ter:0.4,div:"Herbeleggen"},{name:"Amundi MSCI Water UCITS ETF",isin:"FR0010527275",namPct:47,sector:"Energie",region:"Wereldwijd",ter:0.59,div:"Uitkeren"},{name:"State Street SPDR STOXX Eur 600 SRI (Acc) UCITS ETF",isin:"IE00BK5H8015",sector:"Breed markt - ESG",region:"Europa",ter:0.12,div:"Herbeleggen"},{name:"iShares STOXX Global Select Dividend 100 UCITS ETF",isin:"DE000A0F5UH1",namPct:30,sector:"Dividenden",region:"Wereldwijd",ter:0.46,div:"Uitkeren"},{name:"Invesco EQQQ NASDAQ-100 UCITS ETF",isin:"IE0032077012",sector:"Technologie",region:"Noord-Amerika",ter:0.3,div:"Uitkeren"},{name:"iShares STOXX Europe Select Dividend 30 UCITS ETF",isin:"DE0002635299",sector:"Dividenden",region:"Europa",ter:0.31,div:"Uitkeren"},{name:"iShares MSCI World USD (Dist) UCITS ETF",isin:"IE00B0M62Q58",namPct:71,sector:"Breed markt",region:"Wereldwijd",ter:0.5,div:"Uitkeren"},{name:"State Street SPDR MSCI Wrld SmlCap (Acc) UCITS ETF",isin:"IE00BCBJG560",namPct:68,sector:"Breed markt",region:"Wereldwijd",ter:0.45,div:"Herbeleggen"},{name:"L&G Cyber Security UCITS ETF",isin:"IE00BYPLS672",namPct:52,sector:"Technologie",region:"Wereldwijd",ter:0.69,div:"Herbeleggen"},{name:"State St SPDR S&P Eur Dvd Aristoc (Dist) UCITS ETF",isin:"IE00B5M1WJ87",sector:"Dividenden",region:"Europa",ter:0.3,div:"Uitkeren"},{name:"iShares MSCI EM Latin America UCITS ETF",isin:"IE00B27YCK28",sector:"Breed markt",region:"Latijns-Amerika",ter:0.2,div:"Uitkeren"},{name:"iShares Global Water UCITS ETF",isin:"IE00B1TXK627",namPct:57,sector:"Energie",region:"Wereldwijd",ter:0.65,div:"Uitkeren"},{name:"State Street SPDR MSCI Wrld HlthCre (Acc) UCITS ETF",isin:"IE00BYTRRB94",namPct:69,sector:"Gezondheidszorg",region:"Wereldwijd",ter:0.3,div:"Herbeleggen"},{name:"iShares Global Infrastructure UCITS ETF",isin:"IE00B1FZS467",namPct:45,sector:"Alternatief",region:"Wereldwijd",ter:0.65,div:"Uitkeren"},{name:"WisdomTree Artificial Intelligence USD UCITS ETF",isin:"IE00BDVPNG13",namPct:57,sector:"Technologie",region:"Wereldwijd",ter:0.4,div:"Herbeleggen"},{name:"VanEck Morningstar Global Wide Moat UCITS ETF",isin:"IE00BL0BMZ89",namPct:68,sector:"Breed markt",region:"Wereldwijd",ter:0.52,div:"Herbeleggen"},{name:"VanEck European Equal Weight Screened UCITS ETF",isin:"NL0010731816",sector:"Breed markt",region:"Europa",ter:0.4,div:"Uitkeren"},{name:"Xtrackers MSCI World UCITS ETF",isin:"IE00BJ0KDQ92",namPct:71,sector:"Breed markt",region:"Wereldwijd",ter:0.12,div:"Herbeleggen"},{name:"SPDR MSCI Europe SC Value Weighted UCITS ETF",isin:"IE00BSPLC298",sector:"Breed markt",region:"Europa",ter:0.3,div:"Herbeleggen"},{name:"iShares MSCI China A Acc UCITS ETF",isin:"IE00BQT3WG13",sector:"Breed markt",region:"Azië/Pacific",ter:0.4,div:"Herbeleggen"},{name:"State St SPDR MSCI US SmCap Valu Wt (Acc) UCITS ETF",isin:"IE00BSPLC413",sector:"Breed markt",region:"Noord-Amerika",ter:0.3,div:"Herbeleggen"},{name:"UBS S&P 500 Scored & Screened UCITS ETF",isin:"IE00BHXMHK04",sector:"Breed markt",region:"Noord-Amerika",ter:0.1,div:"Uitkeren"},{name:"iShares EM Dividend UCITS ETF",isin:"IE00B652H904",sector:"Dividenden",region:"Opkomende markten wereldwijd",ter:0.65,div:"Uitkeren"},{name:"Xtrackers MSCI World Quality UCITS ETF",isin:"IE00BL25JL35",namPct:71,sector:"Factor",region:"Wereldwijd",ter:0.25,div:"Herbeleggen"},{name:"Xtrackers MSCI World Info Technology UCITS ETF",isin:"IE00BM67HT60",namPct:71,sector:"Technologie",region:"Wereldwijd",ter:0.25,div:"Herbeleggen"},{name:"Vanguard FTSE Developed APAC ex Japan UCITS ETF",isin:"IE00B9F5YL18",sector:"Breed markt",region:"Azië/Pacific",ter:0.15,div:"Uitkeren"},{name:"iShares MSCI Europe Mid Cap UCITS ETF",isin:"IE00BF20LF40",sector:"Breed markt",region:"Europa",ter:0.15,div:"Herbeleggen"},{name:"iShares Edge MSCI World Multifactor UCITS ETF",isin:"IE00BZ0PKT83",namPct:68,sector:"Factor",region:"Wereldwijd",ter:0.3,div:"Herbeleggen"},{name:"iShares NASDAQ US Biotechnology UCITS ETF",isin:"IE00BYXG2H39",sector:"Gezondheidszorg",region:"Noord-Amerika",ter:0.35,div:"Herbeleggen"},{name:"Xtrackers DAX UCITS ETF",isin:"LU0274211480",sector:"Breed markt",region:"Europa",ter:0.09,div:"Herbeleggen"},{name:"iShares Core FTSE 100 UCITS ETF",isin:"IE0005042456",sector:"Breed markt",region:"Europa",ter:0.07,div:"Uitkeren"},{name:"iShares European Property Yield UCITS ETF",isin:"IE00B0M63284",sector:"Vastgoed",region:"Europa",ter:0.4,div:"Uitkeren"},{name:"UBS MSCI World Socially Responsible UCITS ETF",isin:"LU0629459743",namPct:67,sector:"Breed markt - ESG",region:"Wereldwijd",ter:0.22,div:"Uitkeren"},{name:"iShares MSCI Brazil UCITS ETF",isin:"IE00B0M63516",sector:"Breed markt",region:"Latijns-Amerika",ter:0.74,div:"Uitkeren"},{name:"iShares STOXX EU 600 Basic Resources UCITS ETF (DE)",isin:"DE000A0F5UK5",sector:"Grondstoffen",region:"Europa",ter:0.46,div:"Uitkeren"},{name:"iShares MSCI EM Asia Acc UCITS ETF",isin:"IE00B5L8K969",sector:"Breed markt",region:"Azië - Opkomende markten",ter:0.2,div:"Herbeleggen"},{name:"iShares Developed Markets Property Yield UCITS ETF",isin:"IE00B1FZS350",namPct:58,sector:"Vastgoed",region:"Wereldwijd",ter:0.59,div:"Uitkeren"},{name:"Vanguard FTSE Japan UCITS ETF",isin:"IE00B95PGT31",sector:"Breed markt",region:"Azië/Pacific",ter:0.1,div:"Uitkeren"},{name:"iShares STOXX EU 600 Health Care UCITS ETF (DE)",isin:"DE000A0Q4R36",sector:"Gezondheidszorg",region:"Europa",ter:0.46,div:"Uitkeren"},{name:"State Street SPDR MSCI EM SmallCap (Acc) UCITS ETF",isin:"IE00B48X4842",sector:"Breed markt",region:"Opkomende markten wereldwijd",ter:0.55,div:"Herbeleggen"},{name:"WisdomTree Global Quality Div Growth Acc UCITS ETF",isin:"IE00BZ56SW52",namPct:66,sector:"Dividenden",region:"Wereldwijd",ter:0.38,div:"Herbeleggen"},{name:"UBS MSCI EMU Socially Responsible UCITS ETF",isin:"LU0629460675",sector:"Breed markt - ESG",region:"Europa",ter:0.2,div:"Uitkeren"},{name:"iShares MSCI Taiwan UCITS ETF",isin:"IE00B0M63623",sector:"Breed markt",region:"Azië/Pacific",ter:0.74,div:"Herbeleggen"},{name:"HSBC MSCI China UCITS ETF",isin:"IE00B44T3H88",sector:"Breed markt",region:"Azië/Pacific",ter:0.28,div:"Herbeleggen"},{name:"iShares China Large Cap USD (Dist) UCITS ETF",isin:"IE00B02KXK85",sector:"Breed markt",region:"Azië/Pacific",ter:0.74,div:"Uitkeren"},{name:"iShares Euro Total Market Growth Large UCITS ETF",isin:"IE00B0M62V02",sector:"Breed markt",region:"Europa",ter:0.4,div:"Uitkeren"},{name:"Amundi MSCI World SRI Clmt Paris Algnd UCITS ETF",isin:"IE000Y77LGG9",namPct:67,sector:"Breed markt - ESG",region:"Wereldwijd",ter:0.18,div:"Herbeleggen"},{name:"iShares DJ Global Leaders Screened UCITS ETF",isin:"IE00B57X3V84",namPct:69,sector:"Breed markt - ESG",region:"Wereldwijd",ter:0.6,div:"Herbeleggen"},{name:"Vanguard FTSE Developed Europe ex UK UCITS ETF",isin:"IE00BKX55S42",sector:"Breed markt",region:"Europa",ter:0.1,div:"Uitkeren"},{name:"State St SPDR RUSSELL 2000 U.S. SC (Acc) UCITS ETF",isin:"IE00BJ38QD84",sector:"Breed markt",region:"Noord-Amerika",ter:0.3,div:"Herbeleggen"},{name:"iShares EURO STOXX Small UCITS ETF",isin:"IE00B02KXM00",sector:"Breed markt",region:"Europa",ter:0.4,div:"Uitkeren"},{name:"UBS MSCI EM Socially Responsible UCITS ETF",isin:"LU1048313891",sector:"Breed markt - ESG",region:"Opkomende markten wereldwijd",ter:0.24,div:"Uitkeren"},{name:"Amundi Prime Japan UCITS ETF",isin:"LU1931974775",sector:"Breed markt",region:"Azië/Pacific",ter:0.05,div:"Uitkeren"},{name:"iShares STOXX EU 600 Insurance UCITS ETF (DE)",isin:"DE000A0H08K7",sector:"Financials",region:"Europa",ter:0.46,div:"Uitkeren"},{name:"Vanguard FTSE Emerging Markets Acc UCITS ETF",isin:"IE00BK5BR733",sector:"Breed markt",region:"Opkomende markten wereldwijd",ter:0.17,div:"Herbeleggen"},{name:"Xtrackers Nikkei 225 UCITS ETF",isin:"LU0839027447",sector:"Breed markt",region:"Azië/Pacific",ter:0.09,div:"Uitkeren"},{name:"iShares Core FTSE 100 GBP Acc UCITS ETF",isin:"IE00B53HP851",sector:"Breed markt",region:"Europa",ter:0.07,div:"Herbeleggen"},{name:"Amundi Prime Europe UCITS ETF",isin:"LU1931974262",sector:"Breed markt",region:"Europa",ter:0.05,div:"Uitkeren"},{name:"iShares MSCI AC Far East ex-Japan UCITS ETF",isin:"IE00B0M63730",sector:"Breed markt",region:"Azië/Pacific",ter:0.74,div:"Uitkeren"},{name:"Xtrackers MSCI Nordic UCITS ETF",isin:"IE00B9MRHC27",sector:"Breed markt",region:"Europa",ter:0.3,div:"Herbeleggen"},{name:"Amundi Index FTSE EPRA Nareit Global UCITS ETF",isin:"LU1437018838",namPct:58,sector:"Vastgoed",region:"Wereldwijd",ter:0.24,div:"Herbeleggen"},{name:"Xtrackers MSCI India Swap UCITS ETF",isin:"LU0514695187",sector:"Breed markt",region:"Azië/Pacific",ter:0.19,div:"Herbeleggen"},{name:"State St SPDR MSCI Euro Health Care Acc UCITS ETF",isin:"IE00BKWQ0H23",sector:"Gezondheidszorg",region:"Europa",ter:0.18,div:"Herbeleggen"},{name:"Xtrackers EURO Stoxx 50 UCITS ETF",isin:"LU0380865021",sector:"Breed markt",region:"Europa",ter:0.09,div:"Herbeleggen"},{name:"Amundi DAX (DR) UCITS ETF",isin:"FR0010655712",sector:"Breed markt",region:"Europa",ter:0.1,div:"Herbeleggen"},{name:"iShares EURO STOXX (DE) UCITS ETF",isin:"DE000A0D8Q07",sector:"Breed markt",region:"Europa",ter:0.2,div:"Uitkeren"},{name:"iShares EURO STOXX Mid UCITS ETF",isin:"IE00B02KXL92",sector:"Breed markt",region:"Europa",ter:0.4,div:"Uitkeren"},{name:"State Street SPDR MSCI EM Asia (Acc) UCITS ETF",isin:"IE00B466KX20",sector:"Breed markt",region:"Azië - Opkomende markten",ter:0.55,div:"Herbeleggen"},{name:"State St SPDR S&P EM Dvd Aristo Dist UCITS ETF",isin:"IE00B6YX5B26",sector:"Dividenden",region:"Opkomende markten wereldwijd",ter:0.55,div:"Uitkeren"},{name:"iShares MSCI Australia UCITS ETF",isin:"IE00B5377D42",sector:"Breed markt",region:"Azië/Pacific",ter:0.5,div:"Herbeleggen"},{name:"iShares STOXX Europe Small 200 UCITS ETF (DE)",isin:"DE000A0D8QZ7",sector:"Breed markt",region:"Europa",ter:0.22,div:"Uitkeren"},{name:"iShares MSCI North America UCITS ETF",isin:"IE00B14X4M10",sector:"Breed markt",region:"Noord-Amerika",ter:0.4,div:"Uitkeren"},{name:"Amundi MSCI Disruptive Technology UCITS ETF",isin:"LU2023678282",namPct:63,sector:"Technologie",region:"Wereldwijd",ter:0.45,div:"Herbeleggen"},{name:"iShares Core MSCI Pacific ex Japan UCITS ETF",isin:"IE00B52MJY50",sector:"Breed markt",region:"Azië/Pacific",ter:0.2,div:"Herbeleggen"},{name:"iShares DJ US Select Dividend (DE) UCITS ETF",isin:"DE000A0D8Q49",sector:"Dividenden",region:"Noord-Amerika",ter:0.31,div:"Uitkeren"},{name:"iShares US Property Yield UCITS ETF",isin:"IE00B1FZSF77",sector:"Vastgoed",region:"Noord-Amerika",ter:0.4,div:"Uitkeren"},{name:"iShares STOXX EU 600 Telecom UCITS ETF (DE)",isin:"DE000A0H08R2",sector:"Telecom",region:"Europa",ter:0.46,div:"Uitkeren"},{name:"iShares MSCI Europe ex-UK UCITS ETF",isin:"IE00B14X4N27",sector:"Breed markt",region:"Europa",ter:0.4,div:"Uitkeren"},{name:"iShares Edge MSCI Eur Min Volatility Acc UCITS ETF",isin:"IE00B86MWN23",sector:"Factor",region:"Europa",ter:0.25,div:"Herbeleggen"},{name:"State St SPDR MSCI World Comm Ser (Acc) UCITS ETF",isin:"IE00BYTRRG40",namPct:66,sector:"Breed markt",region:"Wereldwijd",ter:0.3,div:"Herbeleggen"},{name:"Xtrackers MSCI World ESG Screened UCITS ETF",isin:"IE00BCHWNQ94",namPct:71,sector:"Breed markt - ESG",region:"Wereldwijd",ter:0.19,div:"Uitkeren"},{name:"Amundi MSCI World Climate Paris Aligned UCITS ETF",isin:"IE000CL68Z69",namPct:67,sector:"Breed markt - ESG",region:"Wereldwijd",ter:0.2,div:"Herbeleggen"},{name:"iShares Nikkei 225 Acc UCITS ETF",isin:"IE00B52MJD48",sector:"Breed markt",region:"Azië/Pacific",ter:0.48,div:"Herbeleggen"},{name:"Xtrackers S&P Select Frontier Swap UCITS ETF",isin:"LU0328476410",sector:"Breed markt",region:"Opkomende markten wereldwijd",ter:0.95,div:"Herbeleggen"},{name:"Vanguard FTSE North America UCITS ETF",isin:"IE00BKX55R35",sector:"Breed markt",region:"Noord-Amerika",ter:0.08,div:"Uitkeren"},{name:"iShares Asia Property Yield UCITS ETF",isin:"IE00B1FZS244",sector:"Vastgoed",region:"Azië/Pacific",ter:0.59,div:"Uitkeren"},{name:"UBS MSCI USA Socially Responsible UCITS ETF",isin:"LU0629460089",sector:"Breed markt - ESG",region:"Noord-Amerika",ter:0.22,div:"Uitkeren"},{name:"State St SPDR S&P U.S. Fin Sel Sec Acc UCITS ETF",isin:"IE00BWBXM500",sector:"Financials",region:"Noord-Amerika",ter:0.15,div:"Herbeleggen"},{name:"Rize Environmental Impact 100 UCITS ETF",isin:"IE00BLRPRR04",namPct:37,sector:"Energie",region:"Wereldwijd",ter:0.55,div:"Herbeleggen"},{name:"State St SPDR S&P US ConDisc SelSec Acc UCITS ETF",isin:"IE00BWBXM278",sector:"Consument",region:"Noord-Amerika",ter:0.15,div:"Herbeleggen"},{name:"Xtrackers FTSE 100 UCITS ETF",isin:"LU0838780707",sector:"Breed markt",region:"Europa",ter:0.09,div:"Herbeleggen"},{name:"State St SPDR S&P 400 US Mid Cap (Acc) UCITS ETF",isin:"IE00B4YBJ215",sector:"Breed markt",region:"Noord-Amerika",ter:0.3,div:"Herbeleggen"},{name:"iShares MSCI USA SC CTB Enhncd ESG UCITS ETF",isin:"IE00B3VWM098",sector:"Breed markt - ESG",region:"Noord-Amerika",ter:0.43,div:"Herbeleggen"},{name:"State St SPDR MSCI Euro Cons Staples Acc UCITS ETF",isin:"IE00BKWQ0D84",sector:"Consument",region:"Europa",ter:0.18,div:"Herbeleggen"},{name:"iShares MSCI Canada UCITS ETF",isin:"IE00B52SF786",sector:"Breed markt",region:"Noord-Amerika",ter:0.48,div:"Herbeleggen"},{name:"iShares MSCI EMU Small Cap UCITS ETF",isin:"IE00B3VWMM18",sector:"Breed markt",region:"Europa",ter:0.58,div:"Herbeleggen"},{name:"iShares STOXX EU 600 Per & House Gds UCITS ETF (DE)",isin:"DE000A0H08N1",sector:"Consument",region:"Europa",ter:0.46,div:"Uitkeren"},{name:"Xtrackers MSCI EMU UCITS ETF",isin:"LU0846194776",sector:"Breed markt",region:"Europa",ter:0.09,div:"Uitkeren"},{name:"Xtrackers MSCI USA UCITS ETF",isin:"IE00BJ0KDR00",sector:"Breed markt",region:"Noord-Amerika",ter:0.07,div:"Herbeleggen"},{name:"Amundi FTSE EPRA Nareit Global (Dist) UCITS ETF",isin:"LU1737652823",namPct:58,sector:"Vastgoed",region:"Wereldwijd",ter:0.24,div:"Uitkeren"},{name:"UBS Core MSCI EMU UCITS ETF",isin:"LU0147308422",sector:"Breed markt",region:"Europa",ter:0.12,div:"Uitkeren"}];
+
+const IM={};DB.forEach(e=>{IM[e.isin]=e;});
+const COLORS=['#3EDCB1','#E21B70','#6B2D84','#FF6B35','#ffd24d','#c8c8c8','#1a9ed4','#9b59b6','#2ecc71','#e67e22'];
+let sats=[],sN=0,cS,cR;
+
+function fz(q,field){const ql=q.toLowerCase().trim(),fl=(field||'').toLowerCase();if(fl.includes(ql))return true;const w=ql.split(' ').filter(x=>x.length>2);return w.length>1&&w.filter(x=>fl.includes(x)).length>=Math.ceil(w.length*0.6);}
+function sDB(q){
+  if(!q||q.length<1)return[];
+  // "/" = toon alles
+  if(q.trim()==='/') return DB.slice();
+  const ql=q.toLowerCase().trim();
+  return DB.filter(e=>
+    fz(q,e.name) ||
+    fz(q,e.sector) ||
+    fz(q,e.region) ||
+    (e.isin&&e.isin.toLowerCase().startsWith(ql))
+  );
+}
+
+function fill(p,etf){
+  document.getElementById(p+'-name').value=etf.name;
+  document.getElementById(p+'-sector').value=etf.sector||'';
+  document.getElementById(p+'-region').value=(etf.namPct!=null&&(etf.region==='Wereldwijd'||etf.region==='Ontwikkelde markten wereldwijd')?etf.region+' ('+etf.namPct+'% N-Am)':etf.region)||'';
+  document.getElementById(p+'-ter').value=etf.ter||'';
+  document.getElementById(p+'-div').value=etf.div||'';
+  const st=document.getElementById(p+'-status');
+  if(st){st.className='status-ok';st.textContent='Gevonden in database — controleer MS Rating zelf via morningstar.nl';}
+  hideSug(p);updateAll();
+}
+function onISIN(p){const v=document.getElementById(p+'-isin').value.trim();if(v.length>=11&&IM[v])fill(p,IM[v]);}
+function onName(p){
+  const res=sDB(document.getElementById(p+'-name').value);
+  const box=document.getElementById(p+'-sug');
+  if(!res.length){box.style.display='none';return;}
+  box.innerHTML=res.map(e=>`<div class="sug-item" onmousedown="fill('${p}',IM['${e.isin}'])">
+    <div style="font-weight:600;color:var(--wit)">${e.name}</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;display:flex;gap:10px">
+      <span>${e.sector||''}</span>
+      <span style="color:var(--mint)">${e.namPct!=null&&(e.region==='Wereldwijd'||e.region==='Ontwikkelde markten wereldwijd')?e.region+' ('+e.namPct+'% N-Am)':e.region||''}</span>
+    </div>
+  </div>`).join('');
+  box.style.display='block';
+}
+function hideSug(p){const b=document.getElementById(p+'-sug');if(b)b.style.display='none';}
+
+function msBadge(ms){
+  const m={Gold:'gold',Silver:'silver',Bronze:'bronze',Neutral:'neutral',Negative:'negative'};
+  if(!ms||!m[ms])return'<span style="color:#4a5070">—</span>';
+  return`<span class="tag tag-${m[ms]}">${ms}</span>`;
+}
+function divBadge(d){
+  if(d==='Herbeleggen')return'<span class="tag tag-herb">Herb.</span>';
+  if(d==='Uitkeren')return'<span class="tag tag-uit">Uitk.</span>';
+  return'<span style="color:#4a5070">—</span>';
+}
+
+function satH(id,n){return`<div class="card" id="${id}"><div class="card-header"><span class="tag tag-etf">ETF ${n}</span><button class="btn btn-sm btn-danger" onclick="remSat('${id}')">✕ Verwijder</button></div><div class="row2"><div><label>ISIN</label><input type="text" id="${id}-isin" placeholder="ISIN invullen" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();onISIN('${id}')"></div><div style="position:relative"><label>Naam <span>(of typ om te zoeken)</span></label><input type="text" id="${id}-name" placeholder="Naam, sector of regio — typ / voor alles" oninput="onName('${id}')" onfocus="onName('${id}')" onblur="setTimeout(()=>hideSug('${id}'),200)"><div id="${id}-sug" class="sug-box" style="display:none"></div></div><div class="weight-col"><label>Weging %</label><input type="number" id="${id}-weight" placeholder="10" min="1" max="50" step="1" oninput="updateAll()"></div></div><div class="row4"><div><label>Sector</label><input type="text" id="${id}-sector" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>Regio</label><input type="text" id="${id}-region" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>MS Rating <span>(zelf)</span></label><select id="${id}-ms" onchange="updateAll()"><option value="">—</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option></select></div><div><label>Dividend</label><select id="${id}-div" onchange="updateAll()"><option value="">—</option><option>Herbeleggen</option><option>Uitkeren</option></select></div><div><label>Kosten (TER) %</label><input type="number" id="${id}-ter" placeholder="0.35" step="0.01" oninput="updateAll()"></div><div><label>Fondsomvang <span style=\"font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400\">(€ mln)</span></label><input type="number" id="${id}-aum" placeholder="bijv. 2000" min="0" step="100" oninput="updateAll()"></div><div><label>Aantal bedrijven</label><input type="number" id="${id}-holdings" placeholder="bijv. 500" min="0" step="1" oninput="updateAll()"></div></div><div class="row3"><div><label>Rendement 5 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r5" placeholder="bijv. 12.5" step="0.1" oninput="updateAll()"></div><div><label>Rendement 10 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r10" placeholder="bijv. 11.0" step="0.1" oninput="updateAll()"></div><div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div></div><div id="${id}-status"></div></div>`;}
+
+function addSat(){if(sats.length>=4)return;sN++;const id='s'+sN;sats.push(id);document.getElementById('sat-wrap').insertAdjacentHTML('beforeend',satH(id,sats.length+1));updBtn();updateAll();}
+function remSat(id){sats=sats.filter(s=>s!==id);document.getElementById(id).remove();document.querySelectorAll('#sat-wrap .tag-etf').forEach((b,i)=>{b.textContent='ETF '+(i+2);});updBtn();updateAll();}
+function getHorizonRange(h){
+  if(h==='10-15')return{min:70,max:80,label:'10–15 jaar'};
+  if(h==='15-20')return{min:60,max:70,label:'15–20 jaar'};
+  if(h==='20+')return{min:50,max:60,label:'>20 jaar'};
+  return null;
+}
+function getMaxETFs(inleg){
+  if(!inleg||inleg<150)return 3; // 1 core + 2
+  if(inleg<=300)return 4; // 1 core + 3
+  return 5; // 1 core + 4
+}
+function getMaxSats(inleg){return getMaxETFs(inleg)-1;}
+
+function updateProfiel(){
+  const h=document.getElementById('horizon').value;
+  const inleg=parseFloat(document.getElementById('maandinleg').value)||0;
+  const box=document.getElementById('profiel-advice');
+  const hint=document.getElementById('core-weging-hint');
+  const hr=getHorizonRange(h);
+  const maxETFs=getMaxETFs(inleg);
+  const maxSats=getMaxSats(inleg);
+
+  let lines=[];
+  if(hr){
+    lines.push(`<strong>Core weging:</strong> ${hr.min}–${hr.max}% aanbevolen bij horizon ${hr.label}`);
+    hint.textContent=`aanbevolen weging ${hr.min}–${hr.max}%`;
+    // Update core weight validation range
+    document.getElementById('core-weight').placeholder=Math.round((hr.min+hr.max)/2);
+  } else {
+    hint.textContent='weging 50–80%';
+    document.getElementById('core-weight').placeholder=60;
+  }
+  if(inleg>0){
+    const minPerETF=25;
+    const maxAffordable=Math.floor(inleg/minPerETF);
+    const effectiveMax=Math.min(maxETFs,maxAffordable);
+    lines.push(`<strong>Max. ETF's:</strong> ${effectiveMax} (1 core + ${effectiveMax-1} ETF${effectiveMax-1!==1?'s':''}) bij €${inleg}/maand — min. €25 per ETF`);
+    if(inleg<25){
+      lines=[];
+      lines.push(`<strong>Let op:</strong> Maandinleg onder €25 — niet genoeg voor ook maar 1 ETF`);
+    }
+  }
+  if(lines.length){
+    box.innerHTML=lines.join('<br>');
+    box.style.display='block';
+  } else {
+    box.style.display='none';
+  }
+
+  // Gate: beide velden verplicht
+  const profielComplete = h && inleg >= 25;
+  document.getElementById('core-card').style.display = profielComplete ? 'block' : 'none';
+  document.getElementById('add-wrap').style.display = profielComplete ? 'block' : 'none';
+  document.getElementById('profiel-gate').style.display = profielComplete ? 'none' : 'block';
+
+  // enforce max sats
+  const inlegVal=parseFloat(document.getElementById('maandinleg').value)||0;
+  const allowedSats=inlegVal>0?Math.min(getMaxSats(inlegVal),4):4;
+  while(sats.length>allowedSats)remSat(sats[sats.length-1]);
+  updBtn();
+  updateAll();
+}
+
+function updBtn(){
+  const inleg=parseFloat(document.getElementById('maandinleg').value)||0;
+  const allowedSats=inleg>0?Math.min(getMaxSats(inleg),4):4;
+  const b=document.getElementById('add-btn');
+  b.disabled=sats.length>=allowedSats;
+  if(sats.length>=allowedSats){
+    b.textContent=inleg>0?`Maximum bereikt (${allowedSats} ETF${allowedSats!==1?'s':''})`:"Maximum bereikt (4 ETF's)";
+  } else {
+    b.textContent='+ ETF toevoegen';
+  }
+}
+
+function getAll(){
+  const list=[];
+  const cw=parseFloat(document.getElementById('core-weight').value);
+  if(!isNaN(cw))list.push({id:'core',name:document.getElementById('core-name').value||'Core ETF',isin:document.getElementById('core-isin').value||'',weight:cw,ter:parseFloat(document.getElementById('core-ter').value)||null,sector:document.getElementById('core-sector').value||'',region:(document.getElementById('core-region').value||'').replace(/\s*\(\d+%\s*N-Am\)/,''),ms:document.getElementById('core-ms').value||'',div:document.getElementById('core-div').value||'',aum:parseFloat(document.getElementById('core-aum').value)||null,holdings:parseFloat(document.getElementById('core-holdings').value)||null,r5:parseFloat(document.getElementById('core-r5').value)||null,r10:parseFloat(document.getElementById('core-r10').value)||null,r15:parseFloat(document.getElementById('core-r15').value)||null});
+  sats.forEach(sid=>{const sw=parseFloat(document.getElementById(sid+'-weight').value);if(!isNaN(sw))list.push({id:sid,name:document.getElementById(sid+'-name').value||'ETF',isin:document.getElementById(sid+'-isin').value||'',weight:sw,ter:parseFloat(document.getElementById(sid+'-ter').value)||null,sector:document.getElementById(sid+'-sector').value||'',region:(document.getElementById(sid+'-region').value||'').replace(/\s*\(\d+%\s*N-Am\)/,''),ms:document.getElementById(sid+'-ms').value||'',div:document.getElementById(sid+'-div').value||'',aum:parseFloat(document.getElementById(sid+'-aum').value)||null,holdings:parseFloat(document.getElementById(sid+'-holdings').value)||null,r5:parseFloat(document.getElementById(sid+'-r5').value)||null,r10:parseFloat(document.getElementById(sid+'-r10').value)||null,r15:parseFloat(document.getElementById(sid+'-r15').value)||null});});
+  return list;
+}
+
+function updateAll(){
+  const etfs=getAll();
+  const tw=etfs.reduce((s,e)=>s+e.weight,0);
+  const tl=etfs.filter(e=>e.ter&&!isNaN(e.ter));
+  const wt=tl.reduce((s,e)=>s+(e.ter*e.weight/100),0);
+  const flags=getFlags(etfs,tw);
+  const de=etfs.filter(e=>e.div);
+  const hW=de.filter(e=>e.div==='Herbeleggen').reduce((s,e)=>s+e.weight,0);
+  const uW=de.filter(e=>e.div==='Uitkeren').reduce((s,e)=>s+e.weight,0);
+  const dT=hW+uW;
+
+  document.getElementById('m-weight').textContent=tw.toFixed(0)+'%';
+  document.getElementById('m-weight').style.color=(tw>100.5||(tw<99&&tw>0&&etfs.length>0))?'var(--oranje)':'var(--wit)';
+  document.getElementById('m-ter').textContent=tl.length?wt.toFixed(2)+'%':'—';
+  const rc=flags.filter(f=>f.t==='r').length;
+  document.getElementById('m-flags').textContent=rc;
+  document.getElementById('m-flags').style.color=rc>0?'var(--fuchsia)':'var(--wit)';
+  document.getElementById('m-herb').textContent=dT>0?hW.toFixed(0)+'%':'—';
+  document.getElementById('m-uit').textContent=dT>0?uW.toFixed(0)+'%':'—';
+  if(dT>0){const uP=(uW/dT)*100;document.getElementById('m-uit').style.color=uP>=100?'var(--fuchsia)':uP>50?'var(--oranje)':'var(--wit)';}
+
+  const show=etfs.some(e=>e.weight>0);
+  document.getElementById('output').style.display=show?'block':'none';
+  if(show){renderCharts(etfs);renderTable(etfs);renderFlags(flags);}
+}
+
+function agg(etfs,k){const m={};etfs.forEach(e=>{const kk=e[k]||'Onbekend';m[kk]=(m[kk]||0)+e.weight;});return m;}
+
+function renderCharts(etfs){
+  const sd=agg(etfs,'sector'),rd=agg(etfs,'region');
+  const sL=Object.keys(sd),sV=sL.map(k=>parseFloat(sd[k].toFixed(1)));
+  const rL=Object.keys(rd),rV=rL.map(k=>parseFloat(rd[k].toFixed(1)));
+  const leg=(labels,vals,id)=>{document.getElementById(id).innerHTML=labels.map((l,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div>${l} ${vals[i].toFixed(0)}%</div>`).join('');};
+  leg(sL,sV,'leg-s');leg(rL,rV,'leg-r');
+  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.parsed.toFixed(0)+'%'}}}};
+  function freshCanvas(id){const old=document.getElementById(id);const c=document.createElement('canvas');c.id=id;old.parentNode.replaceChild(c,old);return c;}
+  if(cS)cS.destroy();
+  cS=new Chart(freshCanvas('ch-s'),{type:'doughnut',data:{labels:sL,datasets:[{data:sV,backgroundColor:COLORS.slice(0,sL.length),borderWidth:2,borderColor:'#212645'}]},options:opts});
+  if(cR)cR.destroy();
+  cR=new Chart(freshCanvas('ch-r'),{type:'doughnut',data:{labels:rL,datasets:[{data:rV,backgroundColor:COLORS.slice(0,rL.length),borderWidth:2,borderColor:'#212645'}]},options:opts});
+}
+
+function renderTable(etfs){
+  document.getElementById('tbl-body').innerHTML=etfs.map(e=>`<tr><td style="font-weight:600;color:var(--wit)">${e.name||'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-weight:700">${e.weight.toFixed(0)}%</td><td style="text-align:right;font-family:'Montserrat',sans-serif;${e.ter&&e.ter>0.5?'color:var(--fuchsia)':''}">  ${e.ter?e.ter.toFixed(2)+'%':'—'}</td><td style="color:var(--text-muted)">${e.sector||'—'}</td><td style="color:var(--text-muted)">${e.region||'—'}</td><td style="text-align:center">${msBadge(e.ms)}</td><td style="text-align:center">${divBadge(e.div)}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:${e.aum&&e.aum<500?'var(--fuchsia)':'var(--text-muted)'}">${e.aum?'€'+e.aum.toLocaleString('nl-NL')+'M':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--text-muted)">${e.holdings?e.holdings.toLocaleString('nl-NL'):'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:${e.r5!=null&&e.r5<10?'var(--fuchsia)':'var(--text-muted)'}">${e.r5!=null?e.r5.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:${e.r10!=null&&e.r10<7?'var(--fuchsia)':'var(--text-muted)'}">${e.r10!=null?e.r10.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--text-muted)">${e.r15!=null?e.r15.toFixed(1)+'%':'—'}</td></tr>`).join('');
+}
+
+function getFlags(etfs,tw){
+  const f=[];
+  const h=document.getElementById('horizon').value;
+  const inleg=parseFloat(document.getElementById('maandinleg').value)||0;
+  const hr=getHorizonRange(h);
+  const minC=hr?hr.min:50;
+  const maxC=hr?hr.max:80;
+
+  if(tw>100.5)f.push({t:'w',msg:`Totale weging ${tw.toFixed(0)}% — meer dan 100%`});
+  if(tw<99&&tw>0&&etfs.length>0)f.push({t:'w',msg:`Totale weging ${tw.toFixed(0)}% — nog niet volledig belegd`});
+  const cw=parseFloat(document.getElementById('core-weight').value);
+  if(!isNaN(cw)&&(cw<minC||cw>maxC))f.push({t:'w',msg:`Core weging ${cw.toFixed(0)}% — richtlijn bij jouw horizon is ${minC}–${maxC}%`});
+
+  // max ETF's vs maandinleg
+  if(inleg>0){
+    const maxAllowed=getMaxETFs(inleg);
+    if(etfs.length>maxAllowed)f.push({t:'r',msg:`${etfs.length} ETF's ingevuld maar bij €${inleg}/maand pas ${maxAllowed} aan te raden (min. €25 per ETF)`});
+    // min €25 per ETF check op basis van weging
+    etfs.forEach(e=>{
+      const inlegVoorETF=(e.weight/100)*inleg;
+      if(inlegVoorETF>0&&inlegVoorETF<25)f.push({t:'r',msg:`${e.name}: bij €${inleg}/maand en ${e.weight.toFixed(0)}% weging gaat er €${inlegVoorETF.toFixed(0)} naartoe — onder het minimum van €25`});
+    });
+  }
+
+  etfs.forEach(e=>{
+    if(e.ms==='Neutral')f.push({t:'w',msg:`${e.name}: Aandachtspunt Neutral: deze ETF zit onder Bronze minimum. Blijf deze ETF monitoren.`});
+    if(e.ms==='Negative')f.push({t:'r',msg:`${e.name}: Morningstar Negative — direct aandachtspunt`});
+    if(e.ter&&e.ter>0.5)f.push({t:'w',msg:`${e.name}: Kosten (TER) ${e.ter.toFixed(2)}% — boven 0.50% richtlijn`});
+    if(e.aum&&e.aum<500)f.push({t:'r',msg:`${e.name}: Fondsomvang €${e.aum.toLocaleString('nl-NL')}M — onder het minimum van €500 mln. Verhoogd liquiditeits- en sluitingsrisico.`});
+    if(e.isin!=='IE00BK5BQT80'){
+      if(e.r5!=null&&e.r5<10)f.push({t:'r',msg:`${e.name}: Rendement 5 jaar ${e.r5.toFixed(1)}% — voldoet niet aan minimum van 10%`});
+      if(e.r10!=null&&e.r10<7)f.push({t:'r',msg:`${e.name}: Rendement 10 jaar ${e.r10.toFixed(1)}% — voldoet niet aan minimum van 7%`});
+    }
+  });
+  const uitkerendETFs=etfs.filter(e=>e.div==='Uitkeren');
+  const alleMetDiv=etfs.filter(e=>e.div);
+  if(alleMetDiv.length>0){
+    const uW=uitkerendETFs.reduce((s,e)=>s+e.weight,0);
+    const dT=alleMetDiv.reduce((s,e)=>s+e.weight,0);
+    const uP=(dT>0)?(uW/dT)*100:0;
+    if(uP>=100)f.push({t:'r',msg:`LET OP!! Kies voor herbeleggen ETF's om het compoundingeffect te maximaliseren.`});
+    else if(uitkerendETFs.length>=1)f.push({t:'w',msg:`Let op, verlies van automatisch compounding-effect.`});
+  }
+  return f;
+}
+
+
+
+function renderFlags(flags){
+  const card=document.getElementById('flags-card'),list=document.getElementById('flags-list');
+  if(!flags.length){card.style.display='none';return;}
+  card.style.display='block';
+  list.innerHTML=flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">${f.t==='r'?'✕':'!'}</div><span>${f.msg}</span></div>`).join('');
+}
+</script>
+</body>
+</html>
