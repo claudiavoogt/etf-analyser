@@ -340,6 +340,16 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 const COLORS=['#3EDCB1','#E21B70','#6B2D84','#FF6B35','#ffd24d','#c8c8c8','#1a9ed4','#9b59b6','#2ecc71','#e67e22'];
 let sats=[],sN=0,cS,cR;
 
+function fill(p,etf){
+  document.getElementById(p+'-name').value=etf.name;
+  document.getElementById(p+'-sector').value=etf.sector||'';
+  document.getElementById(p+'-region').value=(etf.namPct!=null&&(etf.region==='Wereldwijd'||etf.region==='Ontwikkelde markten wereldwijd')?etf.region+' ('+etf.namPct+'% N-Am)':etf.region)||'';
+  document.getElementById(p+'-ter').value=etf.ter||'';
+  document.getElementById(p+'-div').value=etf.div||'';
+  const st=document.getElementById(p+'-status');
+  if(st){st.className='status-ok';st.textContent='Gevonden in database — controleer MS Rating zelf via morningstar.nl';}
+  hideSug(p);updateAll();
+}
 async function onISIN(p){
   const v=document.getElementById(p+'-isin').value.trim();
   if(v.length>=11){
