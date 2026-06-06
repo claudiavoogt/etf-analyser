@@ -97,9 +97,9 @@ select option{background:#1A1F36}
 /* TABLE */
 .overzicht{background:#212645;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px;overflow-x:auto}
 .overzicht-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mint);margin-bottom:16px}
-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
-th{text-align:left;padding:6px 8px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)}
-td{padding:9px 8px;border-bottom:1px solid rgba(46,50,85,0.6);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+th{text-align:left;padding:6px 6px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border)}
+td{padding:8px 6px;border-bottom:1px solid rgba(46,50,85,0.6);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(107,45,132,0.08)}
 
@@ -533,7 +533,7 @@ function renderCharts(etfs){
 }
 
 function renderTable(etfs){
-  document.getElementById('tbl-body').innerHTML=etfs.map(e=>`<tr><td style="font-weight:600;color:var(--wit)">${e.name||'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-weight:700">${e.weight.toFixed(0)}%</td><td style="text-align:right;font-family:'Montserrat',sans-serif;${e.ter&&e.ter>0.5?'color:var(--fuchsia)':''}">  ${e.ter?e.ter.toFixed(2)+'%':'—'}</td><td style="color:var(--text-muted)">${e.sector||'—'}</td><td style="color:var(--text-muted)">${e.region||'—'}</td><td style="text-align:center">${msBadge(e.ms)}</td><td style="text-align:center">${divBadge(e.div)}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:${e.aum&&e.aum<500?'var(--fuchsia)':'var(--text-muted)'}">${e.aum?'€'+e.aum.toLocaleString('nl-NL')+'M':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--text-muted)">${e.holdings?e.holdings.toLocaleString('nl-NL'):'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:${e.r5!=null&&e.r5<10?'var(--fuchsia)':'var(--text-muted)'}">${e.r5!=null?e.r5.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:${e.r10!=null&&e.r10<7?'var(--fuchsia)':'var(--text-muted)'}">${e.r10!=null?e.r10.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--text-muted)">${e.r15!=null?e.r15.toFixed(1)+'%':'—'}</td></tr>`).join('');
+  document.getElementById('tbl-body').innerHTML=etfs.map(e=>`<tr><td style="font-weight:600;color:var(--wit)">${e.name||'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-weight:700">${e.weight.toFixed(0)}%</td><td style="text-align:right;font-family:'Montserrat',sans-serif;${e.ter&&e.ter>0.5?'color:var(--fuchsia)':''}">  ${e.ter?e.ter.toFixed(2)+'%':'—'}</td><td style="color:var(--text-muted)">${e.sector||'—'}</td><td style="color:var(--text-muted)">${e.region||'—'}</td><td style="text-align:center">${msBadge(e.ms)}</td><td style="text-align:center">${divBadge(e.div)}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.aum&&e.aum<500?'var(--fuchsia)':'var(--text-muted)'}">${e.aum?'€'+e.aum.toLocaleString('nl-NL')+'M':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:var(--text-muted)">${e.holdings?e.holdings.toLocaleString('nl-NL'):'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.r5!=null&&e.r5<10?'var(--fuchsia)':'var(--text-muted)'}">${e.r5!=null?e.r5.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.r10!=null&&e.r10<7?'var(--fuchsia)':'var(--text-muted)'}">${e.r10!=null?e.r10.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:var(--text-muted)">${e.r15!=null?e.r15.toFixed(1)+'%':'—'}</td></tr>`).join('');
 }
 
 
