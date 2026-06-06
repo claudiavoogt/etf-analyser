@@ -172,6 +172,10 @@ tr:hover td{background:rgba(107,45,132,0.08)}
   .flag-item.ok{border-left:3px solid #15803d!important;padding-left:8px!important}
   .flag-icon{display:none}
 
+  /* Input velden zwart in print — overschrijft browser-autofill grijstint */
+  input,select{-webkit-text-fill-color:#1A1F36!important;color:#1A1F36!important;background:white!important;border:none!important;padding:0!important;font-size:10px!important;-webkit-appearance:none!important;appearance:none!important;box-shadow:none!important}
+  input::placeholder,select option[value=""]{color:#999!important;-webkit-text-fill-color:#999!important}
+
   /* Disclaimer */
   .disclaimer{border:1px solid #ccc!important;border-radius:8px;padding:10px!important;page-break-inside:avoid}
   .disclaimer-title{color:#6B2D84!important;font-size:10px;font-weight:700;margin-bottom:4px}
