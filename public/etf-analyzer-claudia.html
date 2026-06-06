@@ -346,6 +346,7 @@ let sats=[],sN=0,cS,cR;
 
 function fill(p,etf){
   document.getElementById(p+'-name').value=etf.name;
+  document.getElementById(p+'-isin').value=etf.isin||'';
   document.getElementById(p+'-sector').value=etf.sector||'';
   document.getElementById(p+'-region').value=(etf.namPct!=null&&(etf.region==='Wereldwijd'||etf.region==='Ontwikkelde markten wereldwijd')?etf.region+' ('+etf.namPct+'% N-Am)':etf.region)||'';
   document.getElementById(p+'-ter').value=etf.ter||'';
