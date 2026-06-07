@@ -192,7 +192,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 }
 </style>
 </head>
-<body>
+<body style="visibility:hidden">
 
 <div class="header">
   <div class="header-inner">
@@ -340,20 +340,25 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-
 (async function checkToken(){
   const params = new URLSearchParams(window.location.search);
   const t = params.get('t') || '';
   try {
     const res = await fetch('/.netlify/functions/controleer?t=' + encodeURIComponent(t));
     const data = await res.json();
-    if (!data.geldig) {
+    if (data.geldig) {
+      document.body.style.visibility = 'visible';
+    } else {
+      document.body.style.visibility = 'visible';
       document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1A1F36;font-family:Montserrat,sans-serif;color:#E21B70;font-size:16px;font-weight:700;letter-spacing:0.5px;">Geen toegang. Controleer je link via de cursusomgeving.</div>';
     }
   } catch(e) {
+    document.body.style.visibility = 'visible';
     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1A1F36;font-family:Montserrat,sans-serif;color:#E21B70;font-size:16px;font-weight:700;letter-spacing:0.5px;">Geen toegang. Controleer je link via de cursusomgeving.</div>';
   }
 })();
+</script>
+<script>
 
 const COLORS=['#3EDCB1','#E21B70','#6B2D84','#FF6B35','#ffd24d','#c8c8c8','#1a9ed4','#9b59b6','#2ecc71','#e67e22'];
 let sats=[],sN=0,cS,cR;
