@@ -350,7 +350,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
   const params = new URLSearchParams(window.location.search);
   const t = params.get('t') || '';
   try {
-    const res = await fetch('/.netlify/functions/controleer?t=' + encodeURIComponent(t));
+    const res = await fetch('/api/controleer?t=' + encodeURIComponent(t));
     const data = await res.json();
     if (data.geldig) {
       document.body.style.visibility = 'visible';
@@ -384,7 +384,7 @@ async function onISIN(p){
   const v=document.getElementById(p+'-isin').value.trim();
   if(v.length>=11){
     try{
-      const res=await fetch('/.netlify/functions/zoek?isin='+encodeURIComponent(v));
+      const res=await fetch('/api/zoek?isin='+encodeURIComponent(v));
       const etf=await res.json();
       if(etf) fill(p,etf);
     }catch(e){console.error('ISIN lookup fout:',e);}
@@ -398,7 +398,7 @@ function onName(p){
   clearTimeout(_zoekTimers[p]);
   _zoekTimers[p]=setTimeout(async()=>{
     try{
-      const res=await fetch('/.netlify/functions/zoek?q='+encodeURIComponent(q));
+      const res=await fetch('/api/zoek?q='+encodeURIComponent(q));
       const resultaten=await res.json();
       _zoekResultaten[p]=resultaten;
       if(!resultaten.length){box.style.display='none';return;}
@@ -532,7 +532,7 @@ async function updateAll(){
     const horizon=document.getElementById('horizon').value;
     const inleg=parseFloat(document.getElementById('maandinleg').value)||0;
     try{
-      const res=await fetch('/.netlify/functions/analyseer',{
+      const res=await fetch('/api/analyseer',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({etfs,horizon,inleg})

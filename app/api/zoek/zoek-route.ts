@@ -1,4 +1,4 @@
-import { Handler } from "@netlify/functions";
+import { NextRequest, NextResponse } from 'next/server';
 
 interface ETF {
   name: string;
@@ -34,27 +34,21 @@ function zoekDB(q: string): ETF[] {
   );
 }
 
-export const handler: Handler = async (event) => {
-  const headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-  };
+const headers = { 'Access-Control-Allow-Origin': '*' };
 
-  const params = event.queryStringParameters || {};
-  const isin = params.isin || '';
-  const q = params.q || '';
+export async function GET(request: NextRequest) {
+  const isin = request.nextUrl.searchParams.get('isin') || '';
+  const q = request.nextUrl.searchParams.get('q') || '';
 
-  // ISIN-lookup: één specifieke ETF ophalen
   if (isin) {
     const etf = IM[isin.toUpperCase()] || null;
-    return { statusCode: 200, headers, body: JSON.stringify(etf) };
+    return NextResponse.json(etf, { headers });
   }
 
-  // Zoeken op naam / sector / regio
   if (q) {
     const resultaten = zoekDB(q);
-    return { statusCode: 200, headers, body: JSON.stringify(resultaten) };
+    return NextResponse.json(resultaten, { headers });
   }
 
-  return { statusCode: 400, headers, body: JSON.stringify({ error: "Geef ?q= of ?isin= mee" }) };
-};
+  return NextResponse.json({ error: 'Geef ?q= of ?isin= mee' }, { status: 400, headers });
+}
