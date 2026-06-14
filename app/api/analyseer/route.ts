@@ -78,20 +78,8 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
 
     if (e.isin !== 'IE00BK5BQT80') {
       if (e.r5 != null && e.r5 < 10) f.push({ t: 'r', msg: `${e.name}: Rendement 5 jaar ${e.r5.toFixed(1)}% — voldoet niet aan minimum van 10%` });
-      if (e.r10 != null && e.r10 < 7) f.push({ t: 'r', msg: `${e.name}: Rendement 10 jaar ${e.r10.toFixed(1)}% — voldoet niet aan minimum van 7%` });
     }
   });
-
-  const nietCore = etfs.filter(e => e.id !== 'core');
-  if (nietCore.length > 0) {
-    const helft = nietCore.length / 2;
-    const techCount = nietCore.filter(e => e.sector === 'Technologie').length;
-    const europaCount = nietCore.filter(e => e.region === 'Europa').length;
-    const azieCount = nietCore.filter(e => e.region.startsWith('Azië')).length;
-    if (techCount > helft || europaCount > helft || azieCount > helft) {
-      f.push({ t: 'w', msg: `Let op: je belegt mogelijk teveel in 1 sector of regio. Dat kan een vergroot risico geven. Kijk je spreiding goed na.` });
-    }
-  }
 
   const uitkerendETFs = etfs.filter(e => e.div === 'Uitkeren');
   const alleMetDiv = etfs.filter(e => e.div);
