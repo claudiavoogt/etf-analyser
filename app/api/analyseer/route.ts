@@ -77,7 +77,7 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
     if (e.aum && e.aum < 500) f.push({ t: 'r', msg: `${e.name}: Fondsomvang €${e.aum.toLocaleString('nl-NL')}M — onder het minimum van €500 mln. Verhoogd liquiditeits- en sluitingsrisico.` });
 
     if (e.isin !== 'IE00BK5BQT80') {
-      if (e.r5 != null && e.r5 < 10) f.push({ t: 'r', msg: `${e.name}: Rendement 5 jaar ${e.r5.toFixed(1)}% — voldoet niet aan minimum van 10%` });
+      if (e.r5 != null && e.r5 < 10) f.push({ t: 'r', msg: `${e.name}: Rendement 5 jaar ${e.r5.toFixed(1)}% — zit onder richtlijn van 10%` });
     }
   });
 
