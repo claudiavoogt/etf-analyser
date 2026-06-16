@@ -68,7 +68,7 @@ input:focus,select:focus{border-color:var(--paars)}
 input::placeholder{color:#4a5070}
 select option{background:#1A1F36}
 .status-ok{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:var(--mint);margin-top:10px;display:flex;align-items:center;gap:5px;letter-spacing:0.3px}
-.status-ok::before{content:'✓';font-size:13px}
+.status-ok::before{content:'&#10003;';font-size:13px}
 
 /* BUTTONS */
 .btn{font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.5px;padding:10px 20px;border-radius:8px;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--wit);transition:all .2s;display:inline-flex;align-items:center;gap:6px}
@@ -182,7 +182,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
   .flag-item.ok{border-left:3px solid #15803d!important;padding-left:8px!important}
   .flag-icon{display:none}
 
-  /* Input velden zwart in print — overschrijft browser-autofill grijstint */
+  /* Input velden zwart in print &mdash; overschrijft browser-autofill grijstint */
   input,select{-webkit-text-fill-color:#1A1F36!important;color:#1A1F36!important;background:white!important;border:none!important;padding:0!important;font-size:10px!important;-webkit-appearance:none!important;appearance:none!important;box-shadow:none!important}
   input::placeholder,select option[value=""]{color:#999!important;-webkit-text-fill-color:#999!important}
 
@@ -219,11 +219,11 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 <div class="container">
 
   <div class="metrics">
-    <div class="metric"><div class="metric-label">Kosten (TER)</div><div class="metric-val" id="m-ter">—</div></div>
+    <div class="metric"><div class="metric-label">Kosten (TER)</div><div class="metric-val" id="m-ter">&mdash;</div></div>
     <div class="metric"><div class="metric-label">Weging</div><div class="metric-val" id="m-weight">0%</div></div>
     <div class="metric"><div class="metric-label">Vlaggen</div><div class="metric-val" id="m-flags">0</div></div>
-    <div class="metric"><div class="metric-label">Herbeleggen</div><div class="metric-val" id="m-herb">—</div></div>
-    <div class="metric"><div class="metric-label">Uitkeren</div><div class="metric-val" id="m-uit">—</div></div>
+    <div class="metric"><div class="metric-label">Herbeleggen</div><div class="metric-val" id="m-herb">&mdash;</div></div>
+    <div class="metric"><div class="metric-label">Uitkeren</div><div class="metric-val" id="m-uit">&mdash;</div></div>
   </div>
 
   <div class="profiel-card">
@@ -232,14 +232,14 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       <div>
         <label>Hoe lang wil je beleggen? <span style="color:var(--fuchsia)">*</span></label>
         <select id="horizon" onchange="updateProfiel()">
-          <option value="">— Kies horizon —</option>
+          <option value="">&mdash; Kies horizon &mdash;</option>
           <option value="10-15">10–15 jaar</option>
           <option value="15-20">15–20 jaar</option>
           <option value="20+">Meer dan 20 jaar</option>
         </select>
       </div>
       <div>
-        <label>Maandinleg <span>(€)</span> <span style="color:var(--fuchsia)">*</span></label>
+        <label>Maandinleg <span>(&euro;)</span> <span style="color:var(--fuchsia)">*</span></label>
         <input type="number" id="maandinleg" placeholder="bijv. 250" min="25" step="25" oninput="updateProfiel()">
       </div>
     </div>
@@ -259,7 +259,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       </div>
       <div style="position:relative">
         <label>Naam <span>(naam, sector of regio)</span></label>
-        <input type="text" id="core-name" placeholder="Naam, sector of regio — typ / voor alles" oninput="onName('core')" onfocus="onName('core')" onblur="setTimeout(()=>hideSug('core'),200)">
+        <input type="text" id="core-name" placeholder="Naam, sector of regio &mdash; typ / voor alles" oninput="onName('core')" onfocus="onName('core')" onblur="setTimeout(()=>hideSug('core'),200)">
         <div id="core-sug" class="sug-box" style="display:none"></div>
       </div>
       <div class="weight-col">
@@ -272,21 +272,21 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       <div><label>Regio</label><input type="text" id="core-region" placeholder="Wordt ingevuld" oninput="updateAll()"></div>
       <div><label>MS Sterren <span style="font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400">(zelf invullen)</span></label>
         <select id="core-stars" onchange="updateAll()">
-          <option value="">—</option><option>★</option><option>★★</option><option>★★★</option><option>★★★★</option><option>★★★★★</option>
+          <option value="">&mdash;</option><option>&#9733;</option><option>&#9733;&#9733;</option><option>&#9733;&#9733;&#9733;</option><option>&#9733;&#9733;&#9733;&#9733;</option><option>&#9733;&#9733;&#9733;&#9733;&#9733;</option>
         </select>
       </div>
       <div><label>MS Rating <span style="font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400">(zelf invullen)</span></label>
         <select id="core-ms" onchange="updateAll()">
-          <option value="">—</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option>
+          <option value="">&mdash;</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option>
         </select>
       </div>
       <div><label>Dividend</label>
         <select id="core-div" onchange="updateAll()">
-          <option value="">—</option><option>Herbeleggen</option><option>Uitkeren</option>
+          <option value="">&mdash;</option><option>Herbeleggen</option><option>Uitkeren</option>
         </select>
       </div>
       <div><label>Kosten (TER) %</label><input type="number" id="core-ter" placeholder="0.20" step="0.01" oninput="updateAll()"></div>
-      <div><label>Fondsomvang <span style="font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400">(€ mln)</span></label><input type="number" id="core-aum" placeholder="bijv. 5000" min="0" step="100" oninput="updateAll()"></div>
+      <div><label>Fondsomvang <span style="font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400">(&euro; mln)</span></label><input type="number" id="core-aum" placeholder="bijv. 5000" min="0" step="100" oninput="updateAll()"></div>
       <div><label>Aantal bedrijven</label><input type="number" id="core-holdings" placeholder="bijv. 1300" min="0" step="1" oninput="updateAll()"></div>
     </div>
     <div class="row3">
@@ -295,7 +295,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       <div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="core-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div>
     </div>
     <div id="core-status"></div>
-    <div class="frac-row"><input type="checkbox" id="core-frac"><label for="core-frac">Fractioneel?</label></div><div class="frac-print" id="core-frac-print">☐ Fractioneel</div>
+    <div class="frac-row"><input type="checkbox" id="core-frac"><label for="core-frac">Fractioneel?</label></div><div class="frac-print" id="core-frac-print">&#9744; Fractioneel</div>
   </div>
 
   <div id="sat-wrap"></div>
@@ -328,7 +328,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
           <th style="width:7%;text-align:right">TER</th>
           <th style="width:12%">Sector</th>
           <th style="width:10%">Regio</th>
-          <th style="width:7%;text-align:center">MS ★</th>
+          <th style="width:7%;text-align:center">MS &#9733;</th>
           <th style="width:9%;text-align:center">MS Rating</th>
           <th style="width:8%;text-align:center">DIV</th>
           <th style="width:7%;text-align:right">OMV</th>
@@ -341,13 +341,13 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       </table>
     </div>
     <div class="flags-card" id="flags-card" style="display:none">
-      <div class="flags-title">⚑ Aandachtspunten</div>
+      <div class="flags-title">&#9873; Aandachtspunten</div>
       <div id="flags-list"></div>
     </div>
 
     <div class="disclaimer">
       <div class="disclaimer-title">Belangrijk</div>
-      <div class="disclaimer-text">Deze analyse is gebaseerd op door jou ingevoerde gegevens en een database die periodiek wordt bijgewerkt. Controleer alle informatie — waaronder MS Rating, TER en dividend type — altijd zelf via officiële bronnen zoals Morningstar.nl en de factsheet van de ETF. Deze tool is een hulpmiddel, geen beleggingsadvies. Aan de uitkomsten kunnen geen rechten worden ontleend.</div>
+      <div class="disclaimer-text">Deze analyse is gebaseerd op door jou ingevoerde gegevens en een database die periodiek wordt bijgewerkt. Controleer alle informatie &mdash; waaronder MS Rating, TER en dividend type &mdash; altijd zelf via officiële bronnen zoals Morningstar.nl en de factsheet van de ETF. Deze tool is een hulpmiddel, geen beleggingsadvies. Aan de uitkomsten kunnen geen rechten worden ontleend.</div>
     </div>
 
     <div class="actions">
@@ -357,7 +357,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
     <div class="brand-footer">
       <div class="brand-footer-text">
         <a href="https://claudiavoogt.nl" target="_blank" rel="noopener noreferrer">claudiavoogt.nl</a>
-        — Beleggingsexpert &amp; investeringsmentor
+        &mdash; Beleggingsexpert &amp; investeringsmentor
       </div>
       <div class="brand-footer-copy">
         © 2026 Claudia Voogt. Alle rechten voorbehouden. Deze tool mag niet worden gedeeld, gekopieerd, nagebouwd of hergebruikt zonder schriftelijke toestemming.
@@ -394,7 +394,7 @@ window.addEventListener('beforeprint', function(){
   function updFrac(id){
     const cb = document.getElementById(id+'-frac');
     const el = document.getElementById(id+'-frac-print');
-    if(cb && el) el.textContent = cb.checked ? '☑ Fractioneel' : '☐ Fractioneel';
+    if(cb && el) el.textContent = cb.checked ? '&#9745; Fractioneel' : '&#9744; Fractioneel';
   }
   updFrac('core');
   sats.forEach(id => updFrac(id));
@@ -423,7 +423,7 @@ function fill(p,etf){
   document.getElementById(p+'-ter').value=etf.ter||'';
   document.getElementById(p+'-div').value=etf.div||'';
   const st=document.getElementById(p+'-status');
-  if(st){st.className='status-ok';st.textContent='Gevonden in database — controleer MS Rating zelf via morningstar.nl';}
+  if(st){st.className='status-ok';st.textContent='Gevonden in database &mdash; controleer MS Rating zelf via morningstar.nl';}
   hideSug(p);updateAll();
 }
 async function onISIN(p){
@@ -464,11 +464,11 @@ function hideSug(p){const b=document.getElementById(p+'-sug');if(b)b.style.displ
 
 function msBadge(ms){
   const m={Gold:'gold',Silver:'silver',Bronze:'bronze',Neutral:'neutral',Negative:'negative'};
-  if(!ms||!m[ms])return'<span style="color:#4a5070">—</span>';
+  if(!ms||!m[ms])return'<span style="color:#4a5070">&mdash;</span>';
   return`<span class="tag tag-${m[ms]}">${ms}</span>`;
 }
 function starsBadge(s){
-  if(!s)return'<span style="color:#4a5070">—</span>';
+  if(!s)return'<span style="color:#4a5070">&mdash;</span>';
   const count=s.length;
   const color=count<=2?'var(--fuchsia)':count===3?'var(--oranje)':'#f5c518';
   return`<span style="color:${color};font-size:13px;letter-spacing:1px">${s}</span>`;
@@ -476,10 +476,10 @@ function starsBadge(s){
 function divBadge(d){
   if(d==='Herbeleggen')return'<span class="tag tag-herb">Herb.</span>';
   if(d==='Uitkeren')return'<span class="tag tag-uit">Uitk.</span>';
-  return'<span style="color:#4a5070">—</span>';
+  return'<span style="color:#4a5070">&mdash;</span>';
 }
 
-function satH(id,n){return`<div class="card" id="${id}"><div class="card-header"><span class="tag tag-etf">ETF ${n}</span><button class="btn btn-sm btn-danger" onclick="remSat('${id}')">✕ Verwijder</button></div><div class="row2"><div><label>ISIN</label><input type="text" id="${id}-isin" placeholder="ISIN invullen" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();onISIN('${id}')"></div><div style="position:relative"><label>Naam <span>(of typ om te zoeken)</span></label><input type="text" id="${id}-name" placeholder="Naam, sector of regio — typ / voor alles" oninput="onName('${id}')" onfocus="onName('${id}')" onblur="setTimeout(()=>hideSug('${id}'),200)"><div id="${id}-sug" class="sug-box" style="display:none"></div></div><div class="weight-col"><label>Weging %</label><input type="number" id="${id}-weight" placeholder="10" min="1" max="50" step="1" oninput="updateAll()"></div></div><div class="row4"><div><label>Sector</label><input type="text" id="${id}-sector" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>Regio</label><input type="text" id="${id}-region" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>MS Sterren <span>(zelf)</span></label><select id="${id}-stars" onchange="updateAll()"><option value="">—</option><option>★</option><option>★★</option><option>★★★</option><option>★★★★</option><option>★★★★★</option></select></div><div><label>MS Rating <span>(zelf)</span></label><select id="${id}-ms" onchange="updateAll()"><option value="">—</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option></select></div><div><label>Dividend</label><select id="${id}-div" onchange="updateAll()"><option value="">—</option><option>Herbeleggen</option><option>Uitkeren</option></select></div><div><label>Kosten (TER) %</label><input type="number" id="${id}-ter" placeholder="0.35" step="0.01" oninput="updateAll()"></div><div><label>Fondsomvang <span style=\"font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400\">(€ mln)</span></label><input type="number" id="${id}-aum" placeholder="bijv. 2000" min="0" step="100" oninput="updateAll()"></div><div><label>Aantal bedrijven</label><input type="number" id="${id}-holdings" placeholder="bijv. 500" min="0" step="1" oninput="updateAll()"></div></div><div class="row3"><div><label>Rendement 5 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r5" placeholder="bijv. 12.5" step="0.1" oninput="updateAll()"></div><div><label>Rendement 10 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r10" placeholder="bijv. 11.0" step="0.1" oninput="updateAll()"></div><div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div></div><div id="${id}-status"></div><div class="frac-row"><input type="checkbox" id="${id}-frac"><label for="${id}-frac">Fractioneel?</label></div><div class="frac-print" id="${id}-frac-print">☐ Fractioneel</div></div>`;}
+function satH(id,n){return`<div class="card" id="${id}"><div class="card-header"><span class="tag tag-etf">ETF ${n}</span><button class="btn btn-sm btn-danger" onclick="remSat('${id}')">&#10005; Verwijder</button></div><div class="row2"><div><label>ISIN</label><input type="text" id="${id}-isin" placeholder="ISIN invullen" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();onISIN('${id}')"></div><div style="position:relative"><label>Naam <span>(of typ om te zoeken)</span></label><input type="text" id="${id}-name" placeholder="Naam, sector of regio &mdash; typ / voor alles" oninput="onName('${id}')" onfocus="onName('${id}')" onblur="setTimeout(()=>hideSug('${id}'),200)"><div id="${id}-sug" class="sug-box" style="display:none"></div></div><div class="weight-col"><label>Weging %</label><input type="number" id="${id}-weight" placeholder="10" min="1" max="50" step="1" oninput="updateAll()"></div></div><div class="row4"><div><label>Sector</label><input type="text" id="${id}-sector" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>Regio</label><input type="text" id="${id}-region" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>MS Sterren <span>(zelf)</span></label><select id="${id}-stars" onchange="updateAll()"><option value="">&mdash;</option><option>&#9733;</option><option>&#9733;&#9733;</option><option>&#9733;&#9733;&#9733;</option><option>&#9733;&#9733;&#9733;&#9733;</option><option>&#9733;&#9733;&#9733;&#9733;&#9733;</option></select></div><div><label>MS Rating <span>(zelf)</span></label><select id="${id}-ms" onchange="updateAll()"><option value="">&mdash;</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option></select></div><div><label>Dividend</label><select id="${id}-div" onchange="updateAll()"><option value="">&mdash;</option><option>Herbeleggen</option><option>Uitkeren</option></select></div><div><label>Kosten (TER) %</label><input type="number" id="${id}-ter" placeholder="0.35" step="0.01" oninput="updateAll()"></div><div><label>Fondsomvang <span style=\"font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400\">(&euro; mln)</span></label><input type="number" id="${id}-aum" placeholder="bijv. 2000" min="0" step="100" oninput="updateAll()"></div><div><label>Aantal bedrijven</label><input type="number" id="${id}-holdings" placeholder="bijv. 500" min="0" step="1" oninput="updateAll()"></div></div><div class="row3"><div><label>Rendement 5 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r5" placeholder="bijv. 12.5" step="0.1" oninput="updateAll()"></div><div><label>Rendement 10 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r10" placeholder="bijv. 11.0" step="0.1" oninput="updateAll()"></div><div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div></div><div id="${id}-status"></div><div class="frac-row"><input type="checkbox" id="${id}-frac"><label for="${id}-frac">Fractioneel?</label></div><div class="frac-print" id="${id}-frac-print">&#9744; Fractioneel</div></div>`;}
 
 function addSat(){if(sats.length>=4)return;sN++;const id='s'+sN;sats.push(id);document.getElementById('sat-wrap').insertAdjacentHTML('beforeend',satH(id,sats.length+1));updBtn();updateAll();}
 function remSat(id){sats=sats.filter(s=>s!==id);document.getElementById(id).remove();document.querySelectorAll('#sat-wrap .tag-etf').forEach((b,i)=>{b.textContent='ETF '+(i+2);});updBtn();updateAll();}
@@ -519,10 +519,10 @@ function updateProfiel(){
     const minPerETF=25;
     const maxAffordable=Math.floor(inleg/minPerETF);
     const effectiveMax=Math.min(maxETFs,maxAffordable);
-    lines.push(`<strong>Max. ETF's:</strong> ${effectiveMax} (1 core + ${effectiveMax-1} ETF${effectiveMax-1!==1?'s':''}) bij €${inleg}/maand — min. €25 per ETF`);
+    lines.push(`<strong>Max. ETF's:</strong> ${effectiveMax} (1 core + ${effectiveMax-1} ETF${effectiveMax-1!==1?'s':''}) bij &euro;${inleg}/maand &mdash; min. &euro;25 per ETF`);
     if(inleg<25){
       lines=[];
-      lines.push(`<strong>Let op:</strong> Maandinleg onder €25 — niet genoeg voor ook maar 1 ETF`);
+      lines.push(`<strong>Let op:</strong> Maandinleg onder &euro;25 &mdash; niet genoeg voor ook maar 1 ETF`);
     }
   }
   if(lines.length){
@@ -587,11 +587,11 @@ async function updateAll(){
       const m=data.metrics;
       document.getElementById('m-weight').textContent=m.weight.toFixed(0)+'%';
       document.getElementById('m-weight').style.color=(m.weight>100.5||(m.weight<99&&m.weight>0&&etfs.length>0))?'var(--oranje)':'var(--wit)';
-      document.getElementById('m-ter').textContent=m.ter!==null?m.ter.toFixed(2)+'%':'—';
+      document.getElementById('m-ter').textContent=m.ter!==null?m.ter.toFixed(2)+'%':'&mdash;';
       document.getElementById('m-flags').textContent=m.flagCount;
       document.getElementById('m-flags').style.color=m.flagCount>0?'var(--fuchsia)':'var(--wit)';
-      document.getElementById('m-herb').textContent=m.herb!==null?m.herb.toFixed(0)+'%':'—';
-      document.getElementById('m-uit').textContent=m.uit!==null?m.uit.toFixed(0)+'%':'—';
+      document.getElementById('m-herb').textContent=m.herb!==null?m.herb.toFixed(0)+'%':'&mdash;';
+      document.getElementById('m-uit').textContent=m.uit!==null?m.uit.toFixed(0)+'%':'&mdash;';
       if(m.uitPct!==null){document.getElementById('m-uit').style.color=m.uitPct>=100?'var(--fuchsia)':m.uitPct>50?'var(--oranje)':'var(--wit)';}
       renderFlags(data.flags);
     }catch(e){console.error('Analyse fout:',e);}
@@ -615,7 +615,7 @@ function renderCharts(etfs){
 }
 
 function renderTable(etfs){
-  document.getElementById('tbl-body').innerHTML=etfs.map(e=>`<tr><td style="font-weight:600;color:var(--wit)">${e.name||'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-weight:700">${e.weight.toFixed(0)}%</td><td style="text-align:right;font-family:'Montserrat',sans-serif;${e.ter&&e.ter>0.5?'color:var(--fuchsia)':''}">  ${e.ter?e.ter.toFixed(2)+'%':'—'}</td><td style="color:var(--text-muted)">${e.sector||'—'}</td><td style="color:var(--text-muted)">${e.region||'—'}</td><td style="text-align:center">${starsBadge(e.msStars)}</td><td style="text-align:center">${msBadge(e.ms)}</td><td style="text-align:center">${divBadge(e.div)}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.aum&&e.aum<500?'var(--fuchsia)':'var(--text-muted)'}">${e.aum?'€'+e.aum.toLocaleString('nl-NL')+'M':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:var(--text-muted)">${e.holdings?e.holdings.toLocaleString('nl-NL'):'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.r5!=null&&e.r5<10?'var(--fuchsia)':'var(--text-muted)'}">${e.r5!=null?e.r5.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.r10!=null&&e.r10<7?'var(--fuchsia)':'var(--text-muted)'}">${e.r10!=null?e.r10.toFixed(1)+'%':'—'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:var(--text-muted)">${e.r15!=null?e.r15.toFixed(1)+'%':'—'}</td></tr>`).join('');
+  document.getElementById('tbl-body').innerHTML=etfs.map(e=>`<tr><td style="font-weight:600;color:var(--wit)">${e.name||'&mdash;'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;font-weight:700">${e.weight.toFixed(0)}%</td><td style="text-align:right;font-family:'Montserrat',sans-serif;${e.ter&&e.ter>0.5?'color:var(--fuchsia)':''}">  ${e.ter?e.ter.toFixed(2)+'%':'&mdash;'}</td><td style="color:var(--text-muted)">${e.sector||'&mdash;'}</td><td style="color:var(--text-muted)">${e.region||'&mdash;'}</td><td style="text-align:center">${starsBadge(e.msStars)}</td><td style="text-align:center">${msBadge(e.ms)}</td><td style="text-align:center">${divBadge(e.div)}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.aum&&e.aum<500?'var(--fuchsia)':'var(--text-muted)'}">${e.aum?'&euro;'+e.aum.toLocaleString('nl-NL')+'M':'&mdash;'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:var(--text-muted)">${e.holdings?e.holdings.toLocaleString('nl-NL'):'&mdash;'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.r5!=null&&e.r5<10?'var(--fuchsia)':'var(--text-muted)'}">${e.r5!=null?e.r5.toFixed(1)+'%':'&mdash;'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:${e.r10!=null&&e.r10<7?'var(--fuchsia)':'var(--text-muted)'}">${e.r10!=null?e.r10.toFixed(1)+'%':'&mdash;'}</td><td style="text-align:right;font-family:'Montserrat',sans-serif;color:var(--text-muted)">${e.r15!=null?e.r15.toFixed(1)+'%':'&mdash;'}</td></tr>`).join('');
 }
 
 
@@ -624,7 +624,7 @@ function renderFlags(flags){
   const card=document.getElementById('flags-card'),list=document.getElementById('flags-list');
   if(!flags.length){card.style.display='none';return;}
   card.style.display='block';
-  list.innerHTML=flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">${f.t==='r'?'✕':'!'}</div><span>${f.msg}</span></div>`).join('');
+  list.innerHTML=flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">${f.t==='r'?'&#10005;':'!'}</div><span>${f.msg}</span></div>`).join('');
 }
 </script>
 </body>
