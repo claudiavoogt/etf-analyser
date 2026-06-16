@@ -141,7 +141,13 @@ tr:hover td{background:rgba(107,45,132,0.08)}
   .header-sub{color:#555!important}
   .container{padding:10px 0!important;max-width:100%!important}
   .card,.metric,.chart-card,.overzicht,.flags-card,.disclaimer{background:white!important;border-color:#ccc!important;box-shadow:none!important}
-  .btn,.add-wrap,.profiel-section,.etf-card,.charts-grid{display:none!important}
+  .btn,.add-wrap,.profiel-section,.etf-card{display:none!important}
+  .charts-grid{display:grid!important;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .chart-card{background:white!important;border:1px solid #ccc!important;border-radius:8px;padding:14px;page-break-inside:avoid}
+  .chart-title{color:#6B2D84!important;font-size:10px;letter-spacing:1.5px;font-weight:800;text-transform:uppercase;margin-bottom:6px}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:8px}
+  .legend-item{font-size:9px;color:#1A1F36!important;display:flex;align-items:center;gap:4px}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
   .output-section{display:block!important}
   .metrics{display:flex!important;flex-wrap:wrap;gap:8px;margin-bottom:12px}
   .metric{flex:1;min-width:100px;border:1px solid #ccc!important;border-radius:6px;padding:8px 10px}
@@ -194,6 +200,9 @@ tr:hover td{background:rgba(107,45,132,0.08)}
   .header-inner{padding:18px 20px}
   .container{padding:20px 16px}
 }
+  /* Fractioneel print */
+  .frac-row{display:none}
+  .frac-print{display:block;font-family:'Lora',serif;font-size:11px;color:#1A1F36;margin-top:8px}
 </style>
 </head>
 <body style="visibility:hidden">
@@ -286,7 +295,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       <div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="core-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div>
     </div>
     <div id="core-status"></div>
-    <div class="frac-row"><input type="checkbox" id="core-frac"><label for="core-frac">Fractioneel?</label></div>
+    <div class="frac-row"><input type="checkbox" id="core-frac"><label for="core-frac">Fractioneel?</label></div><div class="frac-print" id="core-frac-print">☐ Fractioneel</div>
   </div>
 
   <div id="sat-wrap"></div>
@@ -378,6 +387,28 @@ tr:hover td{background:rgba(107,45,132,0.08)}
     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1A1F36;font-family:Montserrat,sans-serif;color:#E21B70;font-size:16px;font-weight:700;letter-spacing:0.5px;">Geen toegang. Controleer je link via de cursusomgeving.</div>';
   }
 })();
+
+// Print voorbereiding
+window.addEventListener('beforeprint', function(){
+  // Fractioneel tekst updaten
+  function updFrac(id){
+    const cb = document.getElementById(id+'-frac');
+    const el = document.getElementById(id+'-frac-print');
+    if(cb && el) el.textContent = cb.checked ? '☑ Fractioneel' : '☐ Fractioneel';
+  }
+  updFrac('core');
+  sats.forEach(id => updFrac(id));
+
+  // Charts herrenderen met witte border voor print
+  if(cS){ cS.data.datasets[0].borderColor='#ffffff'; cS.update(); }
+  if(cR){ cR.data.datasets[0].borderColor='#ffffff'; cR.update(); }
+});
+
+window.addEventListener('afterprint', function(){
+  // Charts terugzetten naar donkere border
+  if(cS){ cS.data.datasets[0].borderColor='#212645'; cS.update(); }
+  if(cR){ cR.data.datasets[0].borderColor='#212645'; cR.update(); }
+});
 </script>
 <script>
 
@@ -448,7 +479,7 @@ function divBadge(d){
   return'<span style="color:#4a5070">—</span>';
 }
 
-function satH(id,n){return`<div class="card" id="${id}"><div class="card-header"><span class="tag tag-etf">ETF ${n}</span><button class="btn btn-sm btn-danger" onclick="remSat('${id}')">✕ Verwijder</button></div><div class="row2"><div><label>ISIN</label><input type="text" id="${id}-isin" placeholder="ISIN invullen" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();onISIN('${id}')"></div><div style="position:relative"><label>Naam <span>(of typ om te zoeken)</span></label><input type="text" id="${id}-name" placeholder="Naam, sector of regio — typ / voor alles" oninput="onName('${id}')" onfocus="onName('${id}')" onblur="setTimeout(()=>hideSug('${id}'),200)"><div id="${id}-sug" class="sug-box" style="display:none"></div></div><div class="weight-col"><label>Weging %</label><input type="number" id="${id}-weight" placeholder="10" min="1" max="50" step="1" oninput="updateAll()"></div></div><div class="row4"><div><label>Sector</label><input type="text" id="${id}-sector" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>Regio</label><input type="text" id="${id}-region" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>MS Sterren <span>(zelf)</span></label><select id="${id}-stars" onchange="updateAll()"><option value="">—</option><option>★</option><option>★★</option><option>★★★</option><option>★★★★</option><option>★★★★★</option></select></div><div><label>MS Rating <span>(zelf)</span></label><select id="${id}-ms" onchange="updateAll()"><option value="">—</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option></select></div><div><label>Dividend</label><select id="${id}-div" onchange="updateAll()"><option value="">—</option><option>Herbeleggen</option><option>Uitkeren</option></select></div><div><label>Kosten (TER) %</label><input type="number" id="${id}-ter" placeholder="0.35" step="0.01" oninput="updateAll()"></div><div><label>Fondsomvang <span style=\"font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400\">(€ mln)</span></label><input type="number" id="${id}-aum" placeholder="bijv. 2000" min="0" step="100" oninput="updateAll()"></div><div><label>Aantal bedrijven</label><input type="number" id="${id}-holdings" placeholder="bijv. 500" min="0" step="1" oninput="updateAll()"></div></div><div class="row3"><div><label>Rendement 5 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r5" placeholder="bijv. 12.5" step="0.1" oninput="updateAll()"></div><div><label>Rendement 10 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r10" placeholder="bijv. 11.0" step="0.1" oninput="updateAll()"></div><div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div></div><div id="${id}-status"></div><div class="frac-row"><input type="checkbox" id="${id}-frac"><label for="${id}-frac">Fractioneel?</label></div></div>`;}
+function satH(id,n){return`<div class="card" id="${id}"><div class="card-header"><span class="tag tag-etf">ETF ${n}</span><button class="btn btn-sm btn-danger" onclick="remSat('${id}')">✕ Verwijder</button></div><div class="row2"><div><label>ISIN</label><input type="text" id="${id}-isin" placeholder="ISIN invullen" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();onISIN('${id}')"></div><div style="position:relative"><label>Naam <span>(of typ om te zoeken)</span></label><input type="text" id="${id}-name" placeholder="Naam, sector of regio — typ / voor alles" oninput="onName('${id}')" onfocus="onName('${id}')" onblur="setTimeout(()=>hideSug('${id}'),200)"><div id="${id}-sug" class="sug-box" style="display:none"></div></div><div class="weight-col"><label>Weging %</label><input type="number" id="${id}-weight" placeholder="10" min="1" max="50" step="1" oninput="updateAll()"></div></div><div class="row4"><div><label>Sector</label><input type="text" id="${id}-sector" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>Regio</label><input type="text" id="${id}-region" placeholder="Wordt ingevuld" oninput="updateAll()"></div><div><label>MS Sterren <span>(zelf)</span></label><select id="${id}-stars" onchange="updateAll()"><option value="">—</option><option>★</option><option>★★</option><option>★★★</option><option>★★★★</option><option>★★★★★</option></select></div><div><label>MS Rating <span>(zelf)</span></label><select id="${id}-ms" onchange="updateAll()"><option value="">—</option><option>Gold</option><option>Silver</option><option>Bronze</option><option>Neutral</option><option>Negative</option></select></div><div><label>Dividend</label><select id="${id}-div" onchange="updateAll()"><option value="">—</option><option>Herbeleggen</option><option>Uitkeren</option></select></div><div><label>Kosten (TER) %</label><input type="number" id="${id}-ter" placeholder="0.35" step="0.01" oninput="updateAll()"></div><div><label>Fondsomvang <span style=\"font-size:9px;color:#aab0cc;text-transform:none;letter-spacing:0;font-weight:400\">(€ mln)</span></label><input type="number" id="${id}-aum" placeholder="bijv. 2000" min="0" step="100" oninput="updateAll()"></div><div><label>Aantal bedrijven</label><input type="number" id="${id}-holdings" placeholder="bijv. 500" min="0" step="1" oninput="updateAll()"></div></div><div class="row3"><div><label>Rendement 5 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r5" placeholder="bijv. 12.5" step="0.1" oninput="updateAll()"></div><div><label>Rendement 10 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r10" placeholder="bijv. 11.0" step="0.1" oninput="updateAll()"></div><div><label>Rendement 15 jaar <span>(% p.j.)</span></label><input type="number" id="${id}-r15" placeholder="bijv. 10.5" step="0.1" oninput="updateAll()"></div></div><div id="${id}-status"></div><div class="frac-row"><input type="checkbox" id="${id}-frac"><label for="${id}-frac">Fractioneel?</label></div><div class="frac-print" id="${id}-frac-print">☐ Fractioneel</div></div>`;}
 
 function addSat(){if(sats.length>=4)return;sN++;const id='s'+sN;sats.push(id);document.getElementById('sat-wrap').insertAdjacentHTML('beforeend',satH(id,sats.length+1));updBtn();updateAll();}
 function remSat(id){sats=sats.filter(s=>s!==id);document.getElementById(id).remove();document.querySelectorAll('#sat-wrap .tag-etf').forEach((b,i)=>{b.textContent='ETF '+(i+2);});updBtn();updateAll();}
