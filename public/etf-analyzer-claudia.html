@@ -129,6 +129,9 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 .brand-footer-text{font-family:'Lora',serif;font-size:13px;color:var(--text-muted)}
 .brand-footer-copy{font-family:'Lora',serif;font-size:11px;color:#ffffff;margin-top:6px}
 
+/* MAANDBEDRAG ONDER WEGING */
+.weight-amount{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:var(--mint);margin-top:6px;min-height:16px;letter-spacing:0.3px}
+
 /* ACTIONS */
 .actions{display:flex;justify-content:flex-end;gap:10px}
 .divider{height:1px;background:var(--border);margin:6px 0 20px}
@@ -263,6 +266,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       <div class="weight-col">
         <label>Weging %</label>
         <input type="number" id="core-weight" placeholder="60" min="1" max="99" step="1" oninput="updateAll()">
+        <div class="weight-amount" id="core-weight-amount"></div>
       </div>
     </div>
     <div class="row4">
@@ -544,8 +548,25 @@ function getAll(){
   return list;
 }
 
+function updateWeightAmounts(){
+  const inleg=parseFloat(document.getElementById('maandinleg').value)||0;
+  const ids=['core',...sats];
+  ids.forEach(id=>{
+    const el=document.getElementById(id+'-weight-amount');
+    if(!el)return;
+    const w=parseFloat(document.getElementById(id+'-weight').value);
+    if(inleg>0&&!isNaN(w)&&w>0){
+      const bedrag=(w/100)*inleg;
+      el.textContent='€ '+bedrag.toFixed(0)+' per maand';
+    } else {
+      el.textContent='';
+    }
+  });
+}
+
 let _analyseTimer;
 async function updateAll(){
+  updateWeightAmounts();
   const etfs=getAll();
   const show=etfs.some(e=>e.weight>0);
   document.getElementById('output').style.display=show?'block':'none';
