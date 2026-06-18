@@ -354,7 +354,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
     </div>
 
     <div class="actions">
-      <button class="btn btn-primary" onclick="window.print()">↓ Sla op als PDF</button>
+      <button class="btn btn-primary" id="pdf-btn" onclick="downloadPDF()">↓ Sla op als PDF</button>
     </div>
 
     <div class="brand-footer">
@@ -371,6 +371,8 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 (async function checkToken(){
@@ -626,6 +628,156 @@ function renderFlags(flags){
   card.style.display='block';
   const vaste = '<div class="flag-row flag-info"><div class="flag-icon">i</div><span>Check altijd of de ETF fractioneel aan te kopen is bij jouw broker.</span></div>';
   list.innerHTML=flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">${f.t==='r'?'✕':'!'}</div><span>${f.msg}</span></div>`).join('')+vaste;
+}
+
+async function downloadPDF(){
+  const btn=document.getElementById('pdf-btn');
+  btn.disabled=true;
+  btn.textContent='Bezig met maken…';
+  try{
+    // Tijdelijk witte achtergrond voor capture
+    const output=document.getElementById('output');
+    const charts=document.querySelector('.charts-grid');
+    const overzicht=document.querySelector('.overzicht');
+    const flagsCard=document.getElementById('flags-card');
+    const disclaimer=document.querySelector('.disclaimer');
+    const brandFooter=document.querySelector('.brand-footer');
+
+    // Bouw een print-stijl container
+    const printEl=document.createElement('div');
+    printEl.style.cssText='position:fixed;top:-9999px;left:0;width:1060px;background:white;color:#1A1F36;font-family:Montserrat,sans-serif;padding:20px 30px;';
+
+    // Header
+    printEl.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #6B2D84;padding-bottom:12px;margin-bottom:16px">
+        <div>
+          <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:20px;color:#1A1F36">ETF Portefeuille <span style="color:#6B2D84">Analyzer</span></div>
+          <div style="font-family:Lora,serif;font-style:italic;font-size:12px;color:#555;margin-top:3px">Jouw persoonlijke ETF-analyse</div>
+        </div>
+        <div style="font-family:Montserrat,sans-serif;font-size:11px;color:#6B2D84;font-weight:700">claudiavoogt.nl</div>
+      </div>
+    `;
+
+    // Metrics
+    const metricEls=document.querySelectorAll('.metric');
+    let metricsHtml='<div style="display:flex;gap:10px;margin-bottom:16px">';
+    metricEls.forEach(m=>{
+      const label=m.querySelector('.metric-label')?.textContent||'';
+      const val=m.querySelector('.metric-val')?.textContent||'';
+      metricsHtml+=`<div style="flex:1;border:1px solid #d0c4e0;border-top:3px solid #6B2D84;border-radius:6px;padding:8px 10px;text-align:center">
+        <div style="font-family:Montserrat,sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#1A1F36;margin-bottom:4px">${label}</div>
+        <div style="font-family:Montserrat,sans-serif;font-size:20px;font-weight:800;color:#6B2D84">${val}</div>
+      </div>`;
+    });
+    metricsHtml+='</div>';
+    printEl.innerHTML+=metricsHtml;
+
+    // Tabel
+    if(overzicht){
+      const tblClone=overzicht.cloneNode(true);
+      tblClone.style.cssText='border:1px solid #d0c4e0;border-radius:8px;padding:14px;margin-bottom:14px;overflow:visible';
+      tblClone.querySelectorAll('th').forEach(th=>{th.style.cssText='background:#f4f0f8;color:#1A1F36;font-family:Montserrat,sans-serif;font-weight:700;font-size:9px;letter-spacing:.5px;text-transform:uppercase;padding:6px 5px;border-bottom:2px solid #6B2D84;white-space:nowrap';});
+      tblClone.querySelectorAll('td').forEach(td=>{td.style.cssText='padding:6px 5px;border-bottom:1px solid #e8e2f0;white-space:normal;overflow:visible;text-overflow:unset;color:#1A1F36;font-size:10px;vertical-align:middle';});
+      tblClone.querySelectorAll('table').forEach(t=>{t.style.cssText='width:100%;border-collapse:collapse;font-size:10px;table-layout:auto';});
+      tblClone.querySelectorAll('.tag').forEach(tag=>{
+        tag.style.cssText='font-size:8px;padding:2px 6px;border-radius:3px;border:1px solid #ccc;display:inline-block;font-weight:700;font-family:Montserrat,sans-serif';
+        if(tag.classList.contains('tag-gold')){tag.style.cssText+='background:#fff3cd;color:#7a5800;border-color:#e6a800';}
+        else if(tag.classList.contains('tag-silver')){tag.style.cssText+='background:#e2e3e5;color:#2b2f33;border-color:#868e96';}
+        else if(tag.classList.contains('tag-bronze')){tag.style.cssText+='background:#f5e6d3;color:#6b3a10;border-color:#c07840';}
+        else if(tag.classList.contains('tag-neutral')){tag.style.cssText+='background:#fde8ec;color:#8b0000;border-color:#e21b70';}
+        else if(tag.classList.contains('tag-negative')){tag.style.cssText+='background:#fde8ec;color:#8b0000;border-color:#c0003a';}
+        else if(tag.classList.contains('tag-herb')){tag.style.cssText+='background:#d6f5ec;color:#0a5c3e;border-color:#3edcb1';}
+        else if(tag.classList.contains('tag-uit')){tag.style.cssText+='background:#fff3cd;color:#7a5800;border-color:#e6a800';}
+      });
+      // Verwijder color-styles die witte tekst kunnen forceren
+      tblClone.querySelectorAll('[style*="color:var(--wit)"]').forEach(el=>{el.style.color='#1A1F36';});
+      tblClone.querySelectorAll('[style*="color:var(--text-muted)"]').forEach(el=>{el.style.color='#555555';});
+      tblClone.querySelectorAll('[style*="color:var(--fuchsia)"]').forEach(el=>{el.style.color='#c0003a';});
+      tblClone.querySelectorAll('[style*="color:var(--mint)"]').forEach(el=>{el.style.color='#0a5c3e';});
+      printEl.appendChild(tblClone);
+    }
+
+    // Vlaggen
+    if(flagsCard&&flagsCard.style.display!=='none'){
+      const flagsClone=flagsCard.cloneNode(true);
+      flagsClone.style.cssText='border:1px solid #d0c4e0;border-radius:8px;padding:12px;margin-bottom:14px';
+      flagsClone.querySelectorAll('.flags-title').forEach(t=>{t.style.cssText='color:#6B2D84;font-size:10px;letter-spacing:1.5px;font-weight:800;text-transform:uppercase;margin-bottom:8px';});
+      flagsClone.querySelectorAll('.flag-row').forEach(r=>{
+        r.style.cssText='padding:6px 8px;border-bottom:1px solid #e8e2f0;font-size:10px;color:#1A1F36;display:flex;align-items:flex-start;gap:8px;line-height:1.5';
+        if(r.classList.contains('flag-red')){r.style.cssText+='border-left:3px solid #c0003a;background:#fdf0f3';}
+        else if(r.classList.contains('flag-warn')){r.style.cssText+='border-left:3px solid #E21B70;background:#fdf0f6';}
+        else if(r.classList.contains('flag-info')){r.style.cssText+='border-left:3px solid #3edcb1;background:#f0fdf8';}
+      });
+      flagsClone.querySelectorAll('.flag-icon').forEach(i=>{i.style.display='none';});
+      printEl.appendChild(flagsClone);
+    }
+
+    // Disclaimer
+    if(disclaimer){
+      const dClone=disclaimer.cloneNode(true);
+      dClone.style.cssText='border:1px solid #d0c4e0;border-radius:8px;padding:10px;margin-bottom:14px';
+      dClone.querySelectorAll('.disclaimer-title').forEach(t=>{t.style.cssText='color:#6B2D84;font-size:10px;font-weight:700;margin-bottom:4px';});
+      dClone.querySelectorAll('.disclaimer-text').forEach(t=>{t.style.cssText='font-size:9px;color:#1A1F36;line-height:1.5;font-style:italic';});
+      printEl.appendChild(dClone);
+    }
+
+    // Footer
+    printEl.innerHTML+=`<div style="text-align:center;border-top:1px solid #d0c4e0;padding-top:10px;font-family:Lora,serif;font-size:10px;color:#1A1F36">
+      <span>claudiavoogt.nl — Beleggingsexpert &amp; investeringsmentor</span><br>
+      <span style="font-size:9px;color:#555">© 2026 Claudia Voogt. Alle rechten voorbehouden. Deze tool mag niet worden gedeeld, gekopieerd, nagebouwd of hergebruikt zonder schriftelijke toestemming.</span>
+    </div>`;
+
+    document.body.appendChild(printEl);
+
+    const canvas=await html2canvas(printEl,{
+      scale:2,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      width:1060
+    });
+
+    document.body.removeChild(printEl);
+
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    const pdfW=pdf.internal.pageSize.getWidth();
+    const pdfH=pdf.internal.pageSize.getHeight();
+    const imgW=pdfW-20;
+    const ratio=canvas.width/canvas.height;
+    let imgH=imgW/ratio;
+    let y=10;
+    const imgData=canvas.toDataURL('image/jpeg',0.95);
+
+    if(imgH<=pdfH-20){
+      pdf.addImage(imgData,'JPEG',10,y,imgW,imgH);
+    } else {
+      // Meerdere pagina's
+      const pageH=pdfH-20;
+      const totalPages=Math.ceil(imgH/pageH);
+      for(let i=0;i<totalPages;i++){
+        if(i>0)pdf.addPage();
+        const srcY=(i*pageH/imgH)*canvas.height;
+        const srcH=(pageH/imgH)*canvas.height;
+        const pageCanvas=document.createElement('canvas');
+        pageCanvas.width=canvas.width;
+        pageCanvas.height=srcH;
+        const ctx=pageCanvas.getContext('2d');
+        ctx.drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
+        pdf.addImage(pageCanvas.toDataURL('image/jpeg',0.95),'JPEG',10,10,imgW,pageH);
+      }
+    }
+
+    const now=new Date();
+    const datum=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    pdf.save(`ETF-Analyse-${datum}.pdf`);
+  }catch(e){
+    console.error('PDF fout:',e);
+    alert('Er ging iets mis bij het maken van de PDF. Probeer het opnieuw.');
+  }finally{
+    btn.disabled=false;
+    btn.textContent='↓ Sla op als PDF';
+  }
 }
 </script>
 </body>
