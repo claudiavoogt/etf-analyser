@@ -511,7 +511,13 @@ function updateMaxEtfsResult(){
     const coreAmount=Math.round(inleg*(corePct/100));
     const satRoom=inleg-coreAmount;
     const totalETFs=1+maxSats;
-    box.innerHTML=`<strong>Max. ETF's:</strong> ${totalETFs} (1 core + ${maxSats} ETF${maxSats!==1?'s':''}) — bij €${inleg}/maand en ${corePct}% core blijft er €${satRoom} over voor extra ETF's, min. €25 per ETF`;
+    let extra='';
+    if(maxSats>0){
+      const avgSatAmount=satRoom/maxSats;
+      const avgSatPct=avgSatAmount/inleg*100;
+      extra=` Dat is gemiddeld <strong>${avgSatPct.toFixed(1)}%</strong> per ETF (±€${avgSatAmount.toFixed(0)}/maand).`;
+    }
+    box.innerHTML=`<strong>Max. ETF's:</strong> ${totalETFs} (1 core + ${maxSats} ETF${maxSats!==1?'s':''}) — bij €${inleg}/maand en ${corePct}% core blijft er €${satRoom} over voor extra ETF's, min. €25 per ETF.${extra}`;
     box.style.display='block';
   }
 
