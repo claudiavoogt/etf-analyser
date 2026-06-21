@@ -660,20 +660,12 @@ async function downloadPDF(){
   btn.disabled=true;
   btn.textContent='Bezig met maken…';
   try{
-    // Tijdelijk witte achtergrond voor capture
-    const output=document.getElementById('output');
-    const charts=document.querySelector('.charts-grid');
     const overzicht=document.querySelector('.overzicht');
     const flagsCard=document.getElementById('flags-card');
     const disclaimer=document.querySelector('.disclaimer');
-    const brandFooter=document.querySelector('.brand-footer');
 
-    // Bouw een print-stijl container
-    const printEl=document.createElement('div');
-    printEl.style.cssText='position:fixed;top:-9999px;left:0;width:1060px;background:white;color:#1A1F36;font-family:Montserrat,sans-serif;padding:20px 30px;';
-
-    // Header
-    printEl.innerHTML=`
+    // Gedeelde header-html (op pagina 1)
+    const headerHtml=`
       <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #6B2D84;padding-bottom:12px;margin-bottom:16px">
         <div>
           <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:20px;color:#1A1F36">ETF Portefeuille <span style="color:#6B2D84">Analyzer</span></div>
@@ -683,7 +675,12 @@ async function downloadPDF(){
       </div>
     `;
 
-    // Beleggersprofiel — staat in de tool als eerste, dus ook hier als eerste
+    // ================= PAGINA 1: header, beleggersprofiel, metrics, grafieken =================
+    const pageTop=document.createElement('div');
+    pageTop.style.cssText='position:fixed;top:-9999px;left:0;width:1060px;background:white;color:#1A1F36;font-family:Montserrat,sans-serif;padding:20px 30px;';
+    pageTop.innerHTML=headerHtml;
+
+    // Beleggersprofiel
     const horizonVal=document.getElementById('horizon').value;
     const inlegProfiel=parseFloat(document.getElementById('maandinleg').value)||0;
     const horizonLabels={'10-15':'10–15 jaar','15-20':'15–20 jaar','20+':'Meer dan 20 jaar'};
@@ -704,7 +701,7 @@ async function downloadPDF(){
       profielHtml+=`<div style="font-family:Lora,serif;font-size:10px;color:#1A1F36">${maxEtfsBox.innerHTML}</div>`;
     }
     profielHtml+='</div>';
-    printEl.innerHTML+=profielHtml;
+    pageTop.innerHTML+=profielHtml;
 
     // Metrics
     const metricEls=document.querySelectorAll('.metric');
@@ -718,7 +715,7 @@ async function downloadPDF(){
       </div>`;
     });
     metricsHtml+='</div>';
-    printEl.innerHTML+=metricsHtml;
+    pageTop.innerHTML+=metricsHtml;
 
     // Grafieken (canvas kan niet geklonend worden, dus vastleggen als afbeelding)
     let chartsHtml='<div style="display:flex;gap:14px;margin-bottom:14px">';
@@ -735,7 +732,17 @@ async function downloadPDF(){
       </div>`;
     });
     chartsHtml+='</div>';
-    printEl.innerHTML+=chartsHtml;
+    pageTop.innerHTML+=chartsHtml;
+
+    document.body.appendChild(pageTop);
+    const imgsTop=pageTop.querySelectorAll('img');
+    await Promise.all(Array.from(imgsTop).map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res;})));
+    const canvasTop=await html2canvas(pageTop,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:1060});
+    document.body.removeChild(pageTop);
+
+    // ================= PAGINA 2+: tabel, vlaggen, disclaimer, footer (altijd op een nieuwe pagina) =================
+    const pageBottom=document.createElement('div');
+    pageBottom.style.cssText='position:fixed;top:-9999px;left:0;width:1060px;background:white;color:#1A1F36;font-family:Montserrat,sans-serif;padding:20px 30px;';
 
     // Tabel
     if(overzicht){
@@ -780,7 +787,7 @@ async function downloadPDF(){
       tblClone.querySelectorAll('[style*="color:var(--text-muted)"]').forEach(el=>{el.style.color='#555555';});
       tblClone.querySelectorAll('[style*="color:var(--fuchsia)"]').forEach(el=>{el.style.color='#c0003a';});
       tblClone.querySelectorAll('[style*="color:var(--mint)"]').forEach(el=>{el.style.color='#0a5c3e';});
-      printEl.appendChild(tblClone);
+      pageBottom.appendChild(tblClone);
     }
 
     // Vlaggen
@@ -795,7 +802,7 @@ async function downloadPDF(){
         else if(r.classList.contains('flag-info')){r.style.cssText+='border-left:3px solid #3edcb1;background:#f0fdf8';}
       });
       flagsClone.querySelectorAll('.flag-icon').forEach(i=>{i.style.display='none';});
-      printEl.appendChild(flagsClone);
+      pageBottom.appendChild(flagsClone);
     }
 
     // Disclaimer
@@ -804,62 +811,56 @@ async function downloadPDF(){
       dClone.style.cssText='background:white;border:1px solid #d0c4e0;border-radius:8px;padding:10px;margin-bottom:14px';
       dClone.querySelectorAll('.disclaimer-title').forEach(t=>{t.style.cssText='color:#6B2D84;font-size:10px;font-weight:700;margin-bottom:4px';});
       dClone.querySelectorAll('.disclaimer-text').forEach(t=>{t.style.cssText='font-size:9px;color:#1A1F36;line-height:1.5;font-style:italic';});
-      printEl.appendChild(dClone);
+      pageBottom.appendChild(dClone);
     }
 
     // Footer
-    printEl.innerHTML+=`<div style="text-align:center;border-top:1px solid #d0c4e0;padding-top:10px;font-family:Lora,serif;font-size:10px;color:#1A1F36">
+    pageBottom.innerHTML+=`<div style="text-align:center;border-top:1px solid #d0c4e0;padding-top:10px;font-family:Lora,serif;font-size:10px;color:#1A1F36">
       <span>claudiavoogt.nl — Beleggingsexpert &amp; investeringsmentor</span><br>
       <span style="font-size:9px;color:#555">© 2026 Claudia Voogt. Alle rechten voorbehouden. Deze tool mag niet worden gedeeld, gekopieerd, nagebouwd of hergebruikt zonder schriftelijke toestemming.</span>
     </div>`;
 
-    document.body.appendChild(printEl);
+    document.body.appendChild(pageBottom);
+    const canvasBottom=await html2canvas(pageBottom,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:1060});
+    document.body.removeChild(pageBottom);
 
-    // Wacht tot de chart-afbeeldingen (data-URI's) geladen zijn voor de capture
-    const imgs=printEl.querySelectorAll('img');
-    await Promise.all(Array.from(imgs).map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res;})));
-
-    const canvas=await html2canvas(printEl,{
-      scale:2,
-      useCORS:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      width:1060
-    });
-
-    document.body.removeChild(printEl);
-
+    // ================= PDF opbouwen: elke sectie begint op een eigen pagina =================
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
     const pdfW=pdf.internal.pageSize.getWidth();
     const pdfH=pdf.internal.pageSize.getHeight();
     const imgW=pdfW-20;
-    const ratio=canvas.width/canvas.height;
-    let imgH=imgW/ratio;
-    let y=10;
-    const imgData=canvas.toDataURL('image/jpeg',0.95);
+    const pageH=pdfH-20;
 
-    if(imgH<=pdfH-20){
-      pdf.addImage(imgData,'JPEG',10,y,imgW,imgH);
-    } else {
-      // Meerdere pagina's
-      const pageH=pdfH-20;
-      const totalPages=Math.ceil(imgH/pageH);
-      for(let i=0;i<totalPages;i++){
-        if(i>0)pdf.addPage();
-        const srcY=(i*pageH/imgH)*canvas.height;
-        const srcH=(pageH/imgH)*canvas.height;
-        const pageCanvas=document.createElement('canvas');
-        pageCanvas.width=canvas.width;
-        pageCanvas.height=srcH;
-        const ctx=pageCanvas.getContext('2d');
-        // Witte achtergrond eerst — anders wordt het stuk dat over de canvas-rand valt (laatste pagina) zwart bij JPEG-export, want JPEG kent geen transparantie
-        ctx.fillStyle='#ffffff';
-        ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
-        ctx.drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
-        pdf.addImage(pageCanvas.toDataURL('image/jpeg',0.95),'JPEG',10,10,imgW,pageH);
+    // Tekent één canvas-sectie als één of meerdere PDF-pagina's. addPageBreakFirst=true forceert
+    // dat deze sectie altijd op een NIEUWE pagina begint (zo blijft de tabel nooit half afgesneden).
+    function addSectionAsPages(canvas, addPageBreakFirst){
+      if(addPageBreakFirst) pdf.addPage();
+      const ratio=canvas.width/canvas.height;
+      const imgH=imgW/ratio;
+      if(imgH<=pageH){
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',10,10,imgW,imgH);
+      } else {
+        const totalPages=Math.ceil(imgH/pageH);
+        for(let i=0;i<totalPages;i++){
+          if(i>0)pdf.addPage();
+          const srcY=(i*pageH/imgH)*canvas.height;
+          const srcH=(pageH/imgH)*canvas.height;
+          const pageCanvas=document.createElement('canvas');
+          pageCanvas.width=canvas.width;
+          pageCanvas.height=srcH;
+          const ctx=pageCanvas.getContext('2d');
+          // Witte achtergrond eerst — anders wordt het stuk dat over de canvas-rand valt (laatste pagina) zwart bij JPEG-export, want JPEG kent geen transparantie
+          ctx.fillStyle='#ffffff';
+          ctx.fillRect(0,0,pageCanvas.width,pageCanvas.height);
+          ctx.drawImage(canvas,0,srcY,canvas.width,srcH,0,0,canvas.width,srcH);
+          pdf.addImage(pageCanvas.toDataURL('image/jpeg',0.95),'JPEG',10,10,imgW,pageH);
+        }
       }
     }
+
+    addSectionAsPages(canvasTop, false);   // pagina 1 — jsPDF start al met 1 lege pagina
+    addSectionAsPages(canvasBottom, true); // altijd een nieuwe pagina voor tabel/vlaggen/disclaimer/footer
 
     const now=new Date();
     const datum=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
