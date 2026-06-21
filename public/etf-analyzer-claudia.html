@@ -697,10 +697,28 @@ async function downloadPDF(){
     metricsHtml+='</div>';
     printEl.innerHTML+=metricsHtml;
 
+    // Grafieken (canvas kan niet geklonend worden, dus vastleggen als afbeelding)
+    let chartsHtml='<div style="display:flex;gap:14px;margin-bottom:14px">';
+    [['ch-s','leg-s','Sector'],['ch-r','leg-r','Regio']].forEach(([canvasId,legId,title])=>{
+      const canvasEl=document.getElementById(canvasId);
+      const imgSrc=canvasEl?canvasEl.toDataURL('image/png',1.0):'';
+      const legendEl=document.getElementById(legId);
+      const legendClone=legendEl?legendEl.cloneNode(true):document.createElement('div');
+      legendClone.querySelectorAll('.legend-item').forEach(li=>{li.style.cssText+='color:#1A1F36;font-family:Montserrat,sans-serif;font-size:9px';});
+      chartsHtml+=`<div style="flex:1;background:white;border:1px solid #d0c4e0;border-radius:8px;padding:14px">
+        <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6B2D84;margin-bottom:6px">${title}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:8px">${legendClone.innerHTML}</div>
+        <div style="text-align:center">${imgSrc?`<img src="${imgSrc}" style="max-width:220px;max-height:200px">`:''}</div>
+      </div>`;
+    });
+    chartsHtml+='</div>';
+    printEl.innerHTML+=chartsHtml;
+
     // Tabel
     if(overzicht){
       const tblClone=overzicht.cloneNode(true);
-      tblClone.style.cssText='border:1px solid #d0c4e0;border-radius:8px;padding:14px;margin-bottom:14px;overflow:visible';
+      tblClone.style.cssText='background:white;border:1px solid #d0c4e0;border-radius:8px;padding:14px;margin-bottom:14px;overflow:visible';
+      tblClone.querySelectorAll('.overzicht-title').forEach(t=>{t.style.cssText='color:#6B2D84;font-family:Montserrat,sans-serif;font-weight:800;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px';});
       tblClone.querySelectorAll('th').forEach(th=>{th.style.cssText='background:#f4f0f8;color:#1A1F36;font-family:Montserrat,sans-serif;font-weight:700;font-size:9px;letter-spacing:.5px;text-transform:uppercase;padding:6px 5px;border-bottom:2px solid #6B2D84;white-space:nowrap';});
       tblClone.querySelectorAll('td').forEach(td=>{td.style.cssText='padding:6px 5px;border-bottom:1px solid #e8e2f0;white-space:normal;overflow:visible;text-overflow:unset;color:#1A1F36;font-size:10px;vertical-align:middle';});
       tblClone.querySelectorAll('table').forEach(t=>{t.style.cssText='width:100%;border-collapse:collapse;font-size:10px;table-layout:auto';});
@@ -725,7 +743,7 @@ async function downloadPDF(){
     // Vlaggen
     if(flagsCard&&flagsCard.style.display!=='none'){
       const flagsClone=flagsCard.cloneNode(true);
-      flagsClone.style.cssText='border:1px solid #d0c4e0;border-radius:8px;padding:12px;margin-bottom:14px';
+      flagsClone.style.cssText='background:white;border:1px solid #d0c4e0;border-radius:8px;padding:12px;margin-bottom:14px';
       flagsClone.querySelectorAll('.flags-title').forEach(t=>{t.style.cssText='color:#6B2D84;font-size:10px;letter-spacing:1.5px;font-weight:800;text-transform:uppercase;margin-bottom:8px';});
       flagsClone.querySelectorAll('.flag-row').forEach(r=>{
         r.style.cssText='padding:6px 8px;border-bottom:1px solid #e8e2f0;font-size:10px;color:#1A1F36;display:flex;align-items:flex-start;gap:8px;line-height:1.5';
@@ -740,7 +758,7 @@ async function downloadPDF(){
     // Disclaimer
     if(disclaimer){
       const dClone=disclaimer.cloneNode(true);
-      dClone.style.cssText='border:1px solid #d0c4e0;border-radius:8px;padding:10px;margin-bottom:14px';
+      dClone.style.cssText='background:white;border:1px solid #d0c4e0;border-radius:8px;padding:10px;margin-bottom:14px';
       dClone.querySelectorAll('.disclaimer-title').forEach(t=>{t.style.cssText='color:#6B2D84;font-size:10px;font-weight:700;margin-bottom:4px';});
       dClone.querySelectorAll('.disclaimer-text').forEach(t=>{t.style.cssText='font-size:9px;color:#1A1F36;line-height:1.5;font-style:italic';});
       printEl.appendChild(dClone);
@@ -753,6 +771,10 @@ async function downloadPDF(){
     </div>`;
 
     document.body.appendChild(printEl);
+
+    // Wacht tot de chart-afbeeldingen (data-URI's) geladen zijn voor de capture
+    const imgs=printEl.querySelectorAll('img');
+    await Promise.all(Array.from(imgs).map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res;})));
 
     const canvas=await html2canvas(printEl,{
       scale:2,
