@@ -36,10 +36,13 @@ function getHorizonRange(h: string): { min: number; max: number; label: string }
   return null;
 }
 
-function getMaxETFs(inleg: number): number {
-  if (!inleg || inleg < 150) return 3;
-  if (inleg <= 300) return 4;
-  return 5;
+function getEffectiveMaxSats(inleg: number, corePct: number | null): number {
+  if (!inleg || inleg < 25) return 0;
+  if (corePct == null || isNaN(corePct) || corePct <= 0 || corePct >= 100) return 4; // core-weging nog onbekend
+  const coreAmount = inleg * (corePct / 100);
+  const satRoom = inleg - coreAmount;
+  const maxAffordable = Math.floor(satRoom / 25);
+  return Math.max(0, Math.min(maxAffordable, 4));
 }
 
 function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag[] {
@@ -57,9 +60,13 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
   }
 
   if (inleg > 0) {
-    const maxAllowed = getMaxETFs(inleg);
+    const core = etfs.find(e => e.id === 'core');
+    const corePct = core && !isNaN(core.weight) ? core.weight : null;
+    const maxSats = getEffectiveMaxSats(inleg, corePct);
+    const maxAllowed = 1 + maxSats;
     if (etfs.length > maxAllowed) {
-      f.push({ t: 'r', msg: `${etfs.length} ETF's ingevuld maar bij €${inleg}/maand pas ${maxAllowed} aan te raden (min. €25 per ETF)` });
+      const coreInfo = corePct != null ? ` en ${corePct.toFixed(0)}% core` : '';
+      f.push({ t: 'r', msg: `${etfs.length} ETF's ingevuld maar bij €${inleg}/maand${coreInfo} pas ${maxAllowed} aan te raden (min. €25 per ETF)` });
     }
     etfs.forEach(e => {
       const inlegVoorETF = (e.weight / 100) * inleg;

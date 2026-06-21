@@ -266,7 +266,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       </div>
       <div class="weight-col">
         <label>Weging %</label>
-        <input type="number" id="core-weight" placeholder="60" min="1" max="99" step="1" oninput="updateAll()">
+        <input type="number" id="core-weight" placeholder="60" min="1" max="99" step="1" oninput="updateAll();updateMaxEtfsResult()">
         <div class="weight-amount" id="core-weight-amount"></div>
       </div>
     </div>
@@ -300,6 +300,8 @@ tr:hover td{background:rgba(107,45,132,0.08)}
     <div id="core-status"></div>
     
   </div>
+
+  <div id="max-etfs-result" class="profiel-advice" style="display:none"></div>
 
   <div id="sat-wrap"></div>
 
@@ -474,12 +476,42 @@ function getHorizonRange(h){
   if(h==='20+')return{min:50,max:60,label:'>20 jaar'};
   return null;
 }
-function getMaxETFs(inleg){
-  if(!inleg||inleg<150)return 3; // 1 core + 2
-  if(inleg<=300)return 4; // 1 core + 3
-  return 5; // 1 core + 4
+function getCoreWeightValue(){
+  const v=parseFloat(document.getElementById('core-weight').value);
+  return isNaN(v)?null:v;
 }
-function getMaxSats(inleg){return getMaxETFs(inleg)-1;}
+function getEffectiveMaxSats(inleg,corePct){
+  if(!inleg||inleg<25)return 0;
+  if(corePct==null||isNaN(corePct)||corePct<=0||corePct>=100)return 4; // core-weging nog onbekend — geen extra restrictie boven hard cap
+  const coreAmount=inleg*(corePct/100);
+  const satRoom=inleg-coreAmount;
+  const maxAffordable=Math.floor(satRoom/25);
+  return Math.max(0,Math.min(maxAffordable,4));
+}
+function updateMaxEtfsResult(){
+  const box=document.getElementById('max-etfs-result');
+  if(!box)return;
+  const inleg=parseFloat(document.getElementById('maandinleg').value)||0;
+  const corePct=getCoreWeightValue();
+
+  if(inleg<25){
+    box.style.display='none';
+  } else if(corePct===null){
+    box.innerHTML=`<strong>Max. ETF's:</strong> vul je core-weging in voor de exacte berekening`;
+    box.style.display='block';
+  } else {
+    const maxSats=getEffectiveMaxSats(inleg,corePct);
+    const coreAmount=Math.round(inleg*(corePct/100));
+    const satRoom=inleg-coreAmount;
+    const totalETFs=1+maxSats;
+    box.innerHTML=`<strong>Max. ETF's:</strong> ${totalETFs} (1 core + ${maxSats} ETF${maxSats!==1?'s':''}) — bij €${inleg}/maand en ${corePct}% core blijft er €${satRoom} over voor extra ETF's, min. €25 per ETF`;
+    box.style.display='block';
+  }
+
+  const cap=getEffectiveMaxSats(inleg,corePct);
+  while(sats.length>cap){remSat(sats[sats.length-1]);}
+  updBtn();
+}
 
 function updateProfiel(){
   const h=document.getElementById('horizon').value;
@@ -487,8 +519,6 @@ function updateProfiel(){
   const box=document.getElementById('profiel-advice');
   const hint=document.getElementById('core-weging-hint');
   const hr=getHorizonRange(h);
-  const maxETFs=getMaxETFs(inleg);
-  const maxSats=getMaxSats(inleg);
 
   let lines=[];
   if(hr){
@@ -500,15 +530,8 @@ function updateProfiel(){
     hint.textContent='weging 50–80%';
     document.getElementById('core-weight').placeholder=60;
   }
-  if(inleg>0){
-    const minPerETF=25;
-    const maxAffordable=Math.floor(inleg/minPerETF);
-    const effectiveMax=Math.min(maxETFs,maxAffordable);
-    lines.push(`<strong>Max. ETF's:</strong> ${effectiveMax} (1 core + ${effectiveMax-1} ETF${effectiveMax-1!==1?'s':''}) bij €${inleg}/maand — min. €25 per ETF`);
-    if(inleg<25){
-      lines=[];
-      lines.push(`<strong>Let op:</strong> Maandinleg onder €25 — niet genoeg voor ook maar 1 ETF`);
-    }
+  if(inleg>0 && inleg<25){
+    lines=[`<strong>Let op:</strong> Maandinleg onder €25 — niet genoeg voor ook maar 1 ETF`];
   }
   if(lines.length){
     box.innerHTML=lines.join('<br>');
@@ -523,17 +546,19 @@ function updateProfiel(){
   document.getElementById('add-wrap').style.display = profielComplete ? 'block' : 'none';
   document.getElementById('profiel-gate').style.display = profielComplete ? 'none' : 'block';
 
-  // enforce max sats
-  const inlegVal=parseFloat(document.getElementById('maandinleg').value)||0;
-  const allowedSats=inlegVal>0?Math.min(getMaxSats(inlegVal),4):4;
-  while(sats.length>allowedSats)remSat(sats[sats.length-1]);
+  if(profielComplete){
+    updateMaxEtfsResult();
+  } else {
+    document.getElementById('max-etfs-result').style.display='none';
+  }
   updBtn();
   updateAll();
 }
 
 function updBtn(){
   const inleg=parseFloat(document.getElementById('maandinleg').value)||0;
-  const allowedSats=inleg>0?Math.min(getMaxSats(inleg),4):4;
+  const corePct=getCoreWeightValue();
+  const allowedSats=getEffectiveMaxSats(inleg,corePct);
   const b=document.getElementById('add-btn');
   b.disabled=sats.length>=allowedSats;
   if(sats.length>=allowedSats){
