@@ -357,6 +357,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 
     <div class="actions">
       <button class="btn btn-primary" id="pdf-btn" onclick="downloadPDF()">↓ Sla op als PDF</button>
+      <button class="btn btn-secondary" onclick="slaOpAlsJSON()" style="margin-left:10px">↓ Sla analyse op</button>
     </div>
 
     <div class="brand-footer">
@@ -885,6 +886,44 @@ async function downloadPDF(){
     btn.disabled=false;
     btn.textContent='↓ Sla op als PDF';
   }
+}
+
+function slaOpAlsJSON(){
+  const getData = id => ({
+    isin: document.getElementById(id+'-isin')?.value || '',
+    name: document.getElementById(id+'-name')?.value || '',
+    weight: parseFloat(document.getElementById(id+'-weight')?.value) || 0,
+    sector: document.getElementById(id+'-sector')?.value || '',
+    region: document.getElementById(id+'-region')?.value || '',
+    msStars: document.getElementById(id+'-stars')?.value || '',
+    ms: document.getElementById(id+'-ms')?.value || '',
+    div: document.getElementById(id+'-div')?.value || '',
+    ter: parseFloat(document.getElementById(id+'-ter')?.value) || null,
+    aum: parseFloat(document.getElementById(id+'-aum')?.value) || null,
+    holdings: parseFloat(document.getElementById(id+'-holdings')?.value) || null,
+    r5: parseFloat(document.getElementById(id+'-r5')?.value) || null,
+    r10: parseFloat(document.getElementById(id+'-r10')?.value) || null,
+    r15: parseFloat(document.getElementById(id+'-r15')?.value) || null,
+  });
+
+  const datum = new Date().toISOString().slice(0,10);
+  const data = {
+    versie: '1.0',
+    datum,
+    horizon: document.getElementById('horizon')?.value || '',
+    inleg: parseFloat(document.getElementById('inleg')?.value) || 0,
+    etfs: [
+      { id: 'core', ...getData('core') },
+      ...sats.map(id => ({ id, ...getData(id) }))
+    ].filter(e => e.isin || e.name)
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `etf-analyse-${datum}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 </script>
 </body>

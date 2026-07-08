@@ -77,9 +77,15 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
   }
 
   etfs.forEach(e => {
-    if (e.ms === 'Neutral') f.push({ t: 'w', msg: `${e.name}: Aandachtspunt Neutral: deze ETF zit onder Bronze minimum. Blijf deze ETF monitoren.` });
+    const lowStars = e.msStars && e.msStars.length <= 2;
+    const isNeutral = e.ms === 'Neutral';
+    if (lowStars && isNeutral) {
+      f.push({ t: 'r', msg: `${e.name}: Combinatie van lage Morningstar sterren en Neutral rating — direct actie vereist. Raadpleeg de cursus.` });
+    } else {
+      if (isNeutral) f.push({ t: 'w', msg: `${e.name}: Neutral rating, blijf de ETF monitoren.` });
+      if (lowStars) f.push({ t: 'r', msg: `${e.name}: Te weinig Morningstar sterren. Blijf de ETF monitoren.` });
+    }
     if (e.ms === 'Negative') f.push({ t: 'r', msg: `${e.name}: Morningstar Negative — direct aandachtspunt` });
-    if (e.msStars && e.msStars.length <= 2) f.push({ t: 'r', msg: `${e.name} - Let op: deze ETF heeft niet voldoende Morningstar sterren. Blijf de ETF monitoren.` });
     if (e.ter && e.ter > 0.5) f.push({ t: 'w', msg: `${e.name}: Kosten (TER) ${e.ter.toFixed(2)}% — boven 0.50% richtlijn` });
     if (e.aum && e.aum < 500) f.push({ t: 'r', msg: `${e.name}: Fondsomvang €${e.aum.toLocaleString('nl-NL')}M — onder het minimum van €500 mln. Verhoogd liquiditeits- en sluitingsrisico.` });
 
