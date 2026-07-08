@@ -228,6 +228,11 @@ tr:hover td{background:rgba(107,45,132,0.08)}
     <div class="metric"><div class="metric-label">Uitkeren</div><div class="metric-val" id="m-uit">—</div></div>
   </div>
 
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn btn-secondary" onclick="document.getElementById('json-import').click()">↑ Laad opgeslagen analyse</button>
+    <input type="file" id="json-import" accept=".json" style="display:none" onchange="laadUitJSON(this)">
+  </div>
+
   <div class="profiel-card">
     <div class="profiel-title">Beleggersprofiel</div>
     <div class="profiel-grid">
@@ -358,8 +363,6 @@ tr:hover td{background:rgba(107,45,132,0.08)}
     <div class="actions">
       <button class="btn btn-primary" id="pdf-btn" onclick="downloadPDF()">↓ Sla op als PDF</button>
       <button class="btn btn-secondary" onclick="slaOpAlsJSON()" style="margin-left:10px">↓ Sla analyse op</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('json-import').click()" style="margin-left:10px">↑ Laad analyse</button>
-      <input type="file" id="json-import" accept=".json" style="display:none" onchange="laadUitJSON(this)">
     </div>
 
     <div class="brand-footer">
@@ -940,7 +943,7 @@ function laadUitJSON(input){
 
     // Horizon en inleg
     if(data.horizon) document.getElementById('horizon').value = data.horizon;
-    if(data.inleg) document.getElementById('inleg').value = data.inleg;
+    if(data.inleg) document.getElementById('maandinleg').value = data.inleg;
 
     const setVal = (id, val) => { const el = document.getElementById(id); if(el && val != null && val !== '') el.value = val; };
 
