@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Claudia Voogt",
+  title: "ETF Analyzer",
   description: "Claudia Voogt",
   robots: {
     index: false,
