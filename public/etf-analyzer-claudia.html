@@ -81,6 +81,9 @@ select option{background:#1A1F36}
 .btn:disabled{opacity:0.35;cursor:not-allowed}
 .btn-primary{background:var(--gradient-cta);border-color:transparent;color:var(--wit)}
 .btn-primary:hover{opacity:0.9;background:var(--gradient-cta)}
+.btn-add{background:var(--oranje);border-color:transparent;color:var(--wit);box-shadow:0 4px 14px rgba(255,107,53,0.35)}
+.btn-add:hover{opacity:0.9;background:var(--oranje)}
+.btn-add:disabled{background:var(--oranje);box-shadow:none}
 .btn-sm{padding:5px 12px;font-size:11px}
 .btn-danger{border-color:rgba(226,27,112,0.3);color:var(--fuchsia)}
 .btn-danger:hover{background:rgba(226,27,112,0.1)}
@@ -339,7 +342,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
   <div id="sat-wrap"></div>
 
   <div class="add-wrap" id="add-wrap" style="margin-bottom:28px;display:none">
-    <button class="btn" onclick="addSat()" id="add-btn"><span style="color:var(--mint)">→</span> ETF toevoegen</button>
+    <button class="btn btn-add" onclick="addSat()" id="add-btn"><span>→</span> ETF toevoegen</button>
   </div>
 
   <div id="output" style="display:none">
@@ -609,7 +612,7 @@ function updBtn(){
   if(sats.length>=allowedSats){
     b.textContent=inleg>0?`Maximum bereikt (${allowedSats} ETF${allowedSats!==1?'s':''})`:"Maximum bereikt (4 ETF's)";
   } else {
-    b.innerHTML='<span style="color:var(--mint)">→</span> ETF toevoegen';
+    b.innerHTML='<span>→</span> ETF toevoegen';
   }
 }
 
