@@ -100,7 +100,8 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
     const uW = uitkerendETFs.reduce((s, e) => s + e.weight, 0);
     const dT = alleMetDiv.reduce((s, e) => s + e.weight, 0);
     const uP = dT > 0 ? (uW / dT) * 100 : 0;
-    if (uP >= 100) f.push({ t: 'r', msg: `LET OP!! Kies voor herbeleggen ETF's om het compoundingeffect te maximaliseren.` });
+    if (uitkerendETFs.length > 1) f.push({ t: 'r', msg: `${uitkerendETFs.length} ETF's met uitkerend dividend geselecteerd, max. 1 toegestaan.` });
+    else if (uP >= 100) f.push({ t: 'r', msg: `LET OP!! Kies voor herbeleggen ETF's om het compoundingeffect te maximaliseren.` });
     else if (uitkerendETFs.length >= 1) uitkerendETFs.forEach(e => f.push({ t: 'w', msg: `${e.name}: Let op! Dividend wordt uitgekeerd ipv herbelegd. Dit geeft verlies van compounding effect.` }));
   }
 
