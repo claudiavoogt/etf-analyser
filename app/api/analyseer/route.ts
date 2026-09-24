@@ -83,11 +83,16 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
       f.push({ t: 'r', msg: `${e.name}: Combinatie van lage Morningstar sterren en Neutral rating — direct actie vereist. Raadpleeg de cursus.` });
     } else {
       if (isNeutral) f.push({ t: 'w', msg: `${e.name}: Neutral rating, blijf de ETF monitoren.` });
-      if (lowStars) f.push({ t: 'r', msg: `${e.name}: Te weinig Morningstar sterren. Blijf de ETF monitoren.` });
+      if (lowStars) f.push({ t: 'r', msg: `${e.name}: ETF voldoet niet aan de kwaliteitseisen, aantal sterren is te laag.` });
     }
     if (e.ms === 'Negative') f.push({ t: 'r', msg: `${e.name}: Morningstar Negative — direct aandachtspunt` });
     if (e.ter && e.ter > 0.5) f.push({ t: 'w', msg: `${e.name}: Kosten (TER) ${e.ter.toFixed(2)}% — boven 0.50% richtlijn` });
     if (e.aum && e.aum < 500) f.push({ t: 'r', msg: `${e.name}: Fondsomvang €${e.aum.toLocaleString('nl-NL')}M — onder het minimum van €500 mln. Verhoogd liquiditeits- en sluitingsrisico.` });
+
+    // Geen 5-jaarsrendement ingevoerd: invoercontrole, eigen verantwoording klant. Lege rijen worden overgeslagen.
+    if (e.r5 == null && (e.name || e.weight > 0)) {
+      f.push({ t: 'w', msg: `${e.name || 'ETF'}: Let op: er is bij deze ETF geen 5 jaars rendement ingevoerd. Controleer je invoer.` });
+    }
 
     if (e.isin !== 'IE00BK5BQT80') {
       if (e.r5 != null && e.r5 < 10) f.push({ t: 'r', msg: `${e.name}: Rendement 5 jaar ${e.r5.toFixed(1)}% — zit onder richtlijn van 10%` });
