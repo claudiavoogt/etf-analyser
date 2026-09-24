@@ -94,6 +94,14 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
     }
   });
 
+  // Startregel: max. 1 ETF op Neutral, de rest minimaal Bronze.
+  // Negative wordt al per ETF rood gevlagd, Neutral-per-ETF blijft oranje; hier alleen de portefeuillecheck.
+  const neutrals = etfs.filter(e => e.ms === 'Neutral');
+  if (neutrals.length > 1) {
+    const namen = neutrals.map(e => e.name || 'ETF zonder naam').join(', ');
+    f.push({ t: 'r', msg: `${neutrals.length} ETF's op Neutral (${namen}). Bij aanvang mag er maximaal 1 ETF op Neutral staan, de rest moet minimaal Bronze zijn.` });
+  }
+
   const uitkerendETFs = etfs.filter(e => e.div === 'Uitkeren');
   const alleMetDiv = etfs.filter(e => e.div);
   if (alleMetDiv.length > 0) {
