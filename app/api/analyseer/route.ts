@@ -38,7 +38,7 @@ function getHorizonRange(h: string): { min: number; max: number; label: string }
 
 function getEffectiveMaxSats(inleg: number, corePct: number | null): number {
   if (!inleg || inleg < 25) return 0;
-  if (corePct == null || isNaN(corePct) || corePct <= 0 || corePct >= 100) return 4; // core-weging nog onbekend
+  if (corePct == null || isNaN(corePct) || corePct <= 0) return 4; // core-weging nog onbekend
   const coreAmount = inleg * (corePct / 100);
   const satRoom = inleg - coreAmount;
   const maxAffordable = Math.floor(satRoom / 25);

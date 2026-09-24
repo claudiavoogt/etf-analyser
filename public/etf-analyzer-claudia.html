@@ -341,7 +341,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 
   <div id="sat-wrap"></div>
 
-  <div class="add-wrap" id="add-wrap" style="margin-bottom:28px;display:none">
+  <div class="add-wrap" id="add-wrap" style="margin-top:24px;margin-bottom:28px;display:none">
     <button class="btn btn-add" onclick="addSat()" id="add-btn"><span>→</span> ETF toevoegen</button>
   </div>
 
@@ -517,7 +517,7 @@ function getCoreWeightValue(){
 }
 function getEffectiveMaxSats(inleg,corePct){
   if(!inleg||inleg<25)return 0;
-  if(corePct==null||isNaN(corePct)||corePct<=0||corePct>=100)return 4; // core-weging nog onbekend — geen extra restrictie boven hard cap
+  if(corePct==null||isNaN(corePct)||corePct<=0)return 4; // core-weging nog onbekend — geen extra restrictie boven hard cap
   const coreAmount=inleg*(corePct/100);
   const satRoom=inleg-coreAmount;
   const maxAffordable=Math.floor(satRoom/25);
