@@ -107,6 +107,34 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
     f.push({ t: 'r', msg: `${neutrals.length} ETF's op Neutral (${namen}). Bij aanvang mag er maximaal 1 ETF op Neutral staan, de rest moet minimaal Bronze zijn.` });
   }
 
+  // Sectorspreiding: per sector max. 1 aanvullende ETF (rood vanaf 2).
+  // Technologie is ruimer: 1 is prima, 2 is oranje (bewuste keuze?), vanaf 3 rood en afgeraden.
+  // De core telt niet mee. Brede-markt-ETF's (regio-spreiders) en lege sectoren worden overgeslagen.
+  const SECTOR_UITGEZONDERD = ['breed markt'];
+  const SECTOR_MAX: Record<string, number> = { technologie: 2 }; // aantal dat nog (oranje) getolereerd wordt
+  const perSector = new Map<string, { label: string; namen: string[] }>();
+  etfs.filter(e => e.id !== 'core').forEach(e => {
+    const label = (e.sector || '').trim();
+    const key = label.toLowerCase();
+    if (!key || SECTOR_UITGEZONDERD.includes(key)) return;
+    const g = perSector.get(key) || { label, namen: [] };
+    g.namen.push(e.name || 'ETF zonder naam');
+    perSector.set(key, g);
+  });
+  perSector.forEach((g, key) => {
+    const max = SECTOR_MAX[key] ?? 1;
+    const n = g.namen.length;
+    const namen = g.namen.join(', ');
+    if (n > max) {
+      const advies = max > 1
+        ? `Dit wordt afgeraden, kies een andere sector of regio voor voldoende spreiding.`
+        : `Maximaal 1 aanvullende ETF per sector is verstandig voor voldoende spreiding, kies een andere sector of regio.`;
+      f.push({ t: 'r', msg: `${n} aanvullende ETF's in de sector ${g.label} (${namen}). ${advies}` });
+    } else if (max > 1 && n > 1) {
+      f.push({ t: 'w', msg: `${n} aanvullende ETF's in de sector ${g.label} (${namen}). Dit kan, maar is het een bewuste keuze? Het is verstandig om voldoende spreiding aan te brengen.` });
+    }
+  });
+
   const uitkerendETFs = etfs.filter(e => e.div === 'Uitkeren');
   const alleMetDiv = etfs.filter(e => e.div);
   if (alleMetDiv.length > 0) {
