@@ -115,7 +115,7 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(107,45,132,0.08)}
 
 /* FLAGS */
-.flag-info{border-left:3px solid var(--mint);color:#ffffff}.flags-card{background:#212645;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px}
+.flag-info{border-left:3px solid var(--mint);color:#ffffff;background:rgba(62,220,177,0.08);border-radius:8px;padding:12px;margin-bottom:4px}.flag-info .flag-icon{background:rgba(62,220,177,0.25);color:var(--mint);font-size:14px}.flags-card{background:#212645;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px}
 .flags-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fuchsia);margin-bottom:14px}
 .flag-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(46,50,85,0.5);font-size:13px;line-height:1.55}
 .flag-row:last-child{border-bottom:none}
@@ -718,10 +718,9 @@ function renderTable(etfs){
 
 function renderFlags(flags){
   const card=document.getElementById('flags-card'),list=document.getElementById('flags-list');
-  if(!flags.length){card.style.display='none';return;}
   card.style.display='block';
-  const vaste = '<div class="flag-row flag-info"><div class="flag-icon">i</div><span>Check altijd of de ETF fractioneel aan te kopen is bij jouw broker.</span></div>';
-  list.innerHTML=flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">${f.t==='r'?'✕':'!'}</div><span>${f.msg}</span></div>`).join('')+vaste;
+  const vaste = '<div class="flag-row flag-info"><div class="flag-icon">💡</div><span>Check altijd of de ETF fractioneel aan te kopen is bij jouw broker.</span></div>';
+  list.innerHTML=vaste+flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">${f.t==='r'?'✕':'!'}</div><span>${f.msg}</span></div>`).join('');
 }
 
 async function downloadPDF(){
