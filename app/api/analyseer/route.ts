@@ -131,7 +131,7 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
         : `Maximaal 1 aanvullende ETF per sector is verstandig voor voldoende spreiding, kies een andere sector of regio.`;
       f.push({ t: 'r', msg: `${n} aanvullende ETF's in de sector ${g.label} (${namen}). ${advies}` });
     } else if (max > 1 && n > 1) {
-      f.push({ t: 'w', msg: `${n} aanvullende ETF's in de sector ${g.label} (${namen}). Dit kan, maar is het een bewuste keuze? Het is verstandig om voldoende spreiding aan te brengen.` });
+      f.push({ t: 'w', msg: `Let op: ${n} aanvullende ETF's in de sector ${g.label} (${namen}) is het maximum. Zorg dat dit een bewuste keuze is en denk aan voldoende spreiding.` });
     }
   });
 
