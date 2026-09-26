@@ -267,7 +267,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       </div>
       <div>
         <label>Maandinleg <span>(€)</span> <span style="color:var(--fuchsia)">*</span></label>
-        <input type="number" id="maandinleg" placeholder="bijv. 250" min="25" step="25" oninput="updateProfiel();enforceMaxSatsCap()">
+        <input type="number" id="maandinleg" placeholder="bijv. 250" min="25" step="25" oninput="updateProfiel()" onchange="enforceMaxSatsCap()">
       </div>
     </div>
     <div id="profiel-advice" class="profiel-advice" style="display:none"></div>
@@ -282,7 +282,7 @@ tr:hover td{background:rgba(107,45,132,0.08)}
       </div>
       <div class="card-header-weight">
         <label class="weight-label">Weging %</label>
-        <input type="number" id="core-weight" placeholder="60" min="1" max="99" step="1" oninput="updateAll();updateMaxEtfsResult();enforceMaxSatsCap()">
+        <input type="number" id="core-weight" placeholder="60" min="1" max="99" step="1" oninput="updateAll();updateMaxEtfsResult()" onchange="enforceMaxSatsCap()">
         <div class="weight-amount" id="core-weight-amount"></div>
       </div>
       <div class="card-header-right">
