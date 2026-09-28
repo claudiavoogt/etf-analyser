@@ -876,24 +876,32 @@ async function downloadPDF(){
       pageBottom.appendChild(flagsClone);
     }
 
+    document.body.appendChild(pageBottom);
+    const canvasBottom=await html2canvas(pageBottom,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:1060});
+    document.body.removeChild(pageBottom);
+
+    // ================= PAGINA 3: disclaimer + footer (altijd op een eigen nieuwe pagina, nooit halverwege afgesneden) =================
+    const pageDisclaimer=document.createElement('div');
+    pageDisclaimer.style.cssText='position:fixed;top:-9999px;left:0;width:1060px;background:white;color:#1A1F36;font-family:Montserrat,sans-serif;padding:20px 30px;';
+
     // Disclaimer
     if(disclaimer){
       const dClone=disclaimer.cloneNode(true);
       dClone.style.cssText='background:white;border:1px solid #d0c4e0;border-radius:8px;padding:10px;margin-bottom:14px';
       dClone.querySelectorAll('.disclaimer-title').forEach(t=>{t.style.cssText='color:#6B2D84;font-size:10px;font-weight:700;margin-bottom:4px';});
       dClone.querySelectorAll('.disclaimer-text').forEach(t=>{t.style.cssText='font-size:9px;color:#1A1F36;line-height:1.5;font-style:italic';});
-      pageBottom.appendChild(dClone);
+      pageDisclaimer.appendChild(dClone);
     }
 
     // Footer
-    pageBottom.innerHTML+=`<div style="text-align:center;border-top:1px solid #d0c4e0;padding-top:10px;font-family:Lora,serif;font-size:10px;color:#1A1F36">
+    pageDisclaimer.innerHTML+=`<div style="text-align:center;border-top:1px solid #d0c4e0;padding-top:10px;font-family:Lora,serif;font-size:10px;color:#1A1F36">
       <span>claudiavoogt.nl — Beleggingsexpert &amp; investeringsmentor</span><br>
       <span style="font-size:9px;color:#555">© 2026 Claudia Voogt. Alle rechten voorbehouden. Deze tool mag niet worden gedeeld, gekopieerd, nagebouwd of hergebruikt zonder schriftelijke toestemming. De informatie is met zorg samengesteld, maar er kunnen geen rechten aan worden ontleend. Juistheid en volledigheid worden niet gegarandeerd.</span>
     </div>`;
 
-    document.body.appendChild(pageBottom);
-    const canvasBottom=await html2canvas(pageBottom,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:1060});
-    document.body.removeChild(pageBottom);
+    document.body.appendChild(pageDisclaimer);
+    const canvasDisclaimer=await html2canvas(pageDisclaimer,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false,width:1060});
+    document.body.removeChild(pageDisclaimer);
 
     // ================= PDF opbouwen: elke sectie begint op een eigen pagina =================
     const {jsPDF}=window.jspdf;
@@ -930,8 +938,9 @@ async function downloadPDF(){
       }
     }
 
-    addSectionAsPages(canvasTop, false);   // pagina 1 — jsPDF start al met 1 lege pagina
-    addSectionAsPages(canvasBottom, true); // altijd een nieuwe pagina voor tabel/vlaggen/disclaimer/footer
+    addSectionAsPages(canvasTop, false);        // pagina 1 — jsPDF start al met 1 lege pagina
+    addSectionAsPages(canvasBottom, true);      // altijd een nieuwe pagina voor tabel/vlaggen
+    addSectionAsPages(canvasDisclaimer, true);  // altijd een nieuwe pagina voor disclaimer/footer, nooit halverwege afgesneden
 
     const now=new Date();
     const datum=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
