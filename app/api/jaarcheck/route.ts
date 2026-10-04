@@ -59,7 +59,8 @@ import { kernMeldingen } from '../../../lib/kern';
  *   => behouden (Neutral is dan prima). Zijn sterren of fondsvolume wel gedaald => monitoren (hercheck na 6 maanden).
  * - Portefeuille-waarschuwing (los van de individuele beslissing per ETF): 2 of meer ETF's staan in dezelfde
  *   jaarcheck-run op Neutral => algemene waarschuwing bij de samenvatting. Bij 1 ETF op Neutral: geen melding.
- * - Kosten (TER) moeten in alle gevallen onder de 0,5% blijven. Boven 0,5% (tot en met 0,55%) mag alleen
+ * - [AANGEPAST] Kosten (TER) tussen 0,5% en 0,55% zijn GEEN wisselreden meer, alleen een aandachtspunt (kostenSignaal).
+ *   Oude regel, niet meer van toepassing: Kosten (TER) moeten in alle gevallen onder de 0,5% blijven. Boven 0,5% (tot en met 0,55%) mag alleen
  *   bij 4 of 5 MS-sterren én rating minimaal Bronze. 0,55% is ECHT de max — daarboven altijd wisselen,
  *   ongeacht sterren of rating.
  * - Kosten (TER) gestegen t.o.v. vorig jaar => signaal "Let op, de kosten (TER) zijn gestegen." (geen wisselreden op zich).
@@ -323,27 +324,7 @@ function bepaalBeslissing(opts: {
     };
   }
 
-  // Kernregel: kosten (TER) boven de standaardgrens van 0,5% — alleen toegestaan bij 4-5 sterren én rating Bronze of hoger.
-  if (terNieuw != null && terNieuw > MAX_TER_STANDAARD && !(sterren >= 4 && ratingVoldoende)) {
-    return {
-      beslissing: 'wisselen',
-      toelichting: `Kosten (TER ${terNieuw.toFixed(2)}%) zitten boven de standaardgrens van ${MAX_TER_STANDAARD}%. Dat mag alleen bij 4 of 5 Morningstar-sterren én minimaal Bronze-rating — dat is hier niet het geval. Wissel.`,
-      consecutiveUnderperformanceYears,
-      onderBenchmark,
-      fondsvolumeOnderMinimumJaren,
-      fondsvolumeIsHoofdreden: false,
-      terGestegenJaren,
-      terIsHoofdreden: true,
-      sterrenOnder3Jaren,
-      ratingGedaaldJaren,
-      ratingNeutralJaren,
-      sterrenBijStartNeutralStreak,
-      neutraalDalendSterrenGewaarschuwd,
-      kwaliteitIsHoofdreden: false,
-      neutraalTrajectIsHoofdreden: false,
-      tdIsHoofdreden: false,
-    };
-  }
+  // Kosten (TER) tussen de standaardgrens (0,5%) en de absolute max (0,55%): GEEN wisselreden, alleen een aandachtspunt (kostenSignaal).
 
   // Kernregel: fondsvolume zit al voor de tweede keer op rij onder de minimale grens — niet hersteld na de waarschuwing.
   if (fondsvolumeOnderMinimumJaren >= 2) {
@@ -746,13 +727,17 @@ export async function POST(request: NextRequest) {
       const terGestegen = terOud != null && terNieuw != null && terNieuw > terOud;
       const terSterkGenoeg = starCount(n.msStars) >= 3 && ratingRang(n.ms) >= 3;
       // Signaal-tekst: alleen tonen als het al niet de hoofdreden van de beslissing zelf is.
-      const kostenSignaal = terIsHoofdreden
+      const terBovenStandaard = terNieuw != null && terNieuw > MAX_TER_STANDAARD && terNieuw <= MAX_TER_ABSOLUUT
+        ? `Let op: Kosten (TER ${terNieuw.toFixed(2)}%) zitten boven de standaardgrens van ${MAX_TER_STANDAARD}%.`
+        : null;
+      const kostenSignaalBasis = terIsHoofdreden
         ? null
         : (terGestegenJaren >= 2 && terSterkGenoeg)
           ? `Kosten (TER) zijn twee jaar op rij gestegen (${terOud!.toFixed(2)}% → ${terNieuw!.toFixed(2)}%), maar sterren en rating zijn sterk genoeg om dit te compenseren. Blijf dit volgen.`
           : terGestegen
             ? `Let op, de kosten (TER) zijn gestegen (${terOud!.toFixed(2)}% → ${terNieuw!.toFixed(2)}%).`
             : null;
+      const kostenSignaal = terIsHoofdreden ? null : ([terBovenStandaard, kostenSignaalBasis].filter(Boolean).join(' ') || null);
 
       // Sterren/rating kwaliteit-signaal: alleen tonen als het geen hoofdreden van de beslissing zelf is
       // (dan staat het al, uitgebreider, in de toelichting).
@@ -867,7 +852,7 @@ export async function POST(request: NextRequest) {
         sterrenSignaal: null,
         ratingSignaal: null,
         fondsvolumeSignaal: null,
-        kostenSignaal: null,
+        kostenSignaal: (terNieuw != null && terNieuw > MAX_TER_STANDAARD && terNieuw <= MAX_TER_ABSOLUUT && beslissing !== 'wisselen') ? `Let op: Kosten (TER ${terNieuw.toFixed(2)}%) zitten boven de standaardgrens van ${MAX_TER_STANDAARD}%.` : null,
         kwaliteitSignaal: null,
         tdSignaal: tdSignaalNieuw,
         tdIsHoofdreden,
