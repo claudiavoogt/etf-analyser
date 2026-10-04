@@ -697,7 +697,7 @@ function bouwCheck(data, w){
     (data.resultaten || []).forEach(r => { if(r.isin) msg = msg.split(r.isin).join(naamVan(r)); });
     return { t: k.t, msg };
   });
-  return { jaar: parseInt(String(datum).slice(0,4), 10), datum, state, rijen, samenvatting: data.samenvatting, portefeuilleWaarschuwing: data.portefeuilleWaarschuwing || null, kernWaarschuwingen };
+  return { jaar: parseInt(String(datum).slice(0,4), 10), datum, state, rijen, samenvatting: data.samenvatting, portefeuilleWaarschuwing: data.portefeuilleWaarschuwing || null, kernWaarschuwingen, nieuweEtfMeldingen: data.nieuweEtfMeldingen || [] };
 }
 
 function updateJcBar(){
@@ -921,6 +921,7 @@ function renderOverzicht(){
 
   // Aandachtspunten uit de laatste check
   h += '<div class="kaart"><h2>Opmerkingen bij de check van ' + fmtDatum(laatste.datum) + '</h2>';
+  (laatste.nieuweEtfMeldingen || []).forEach(m => { h += '<div class="aandacht ' + (m.t === 'r' ? 'wisselen' : 'monitoren') + '"><div><b>Nieuwe ETF</b><small>' + (m.t === 'r' ? '⚑ ' : '⚑ ') + esc(m.msg) + '</small></div></div>'; });
   const gemist = (() => { const lijst = []; let vj = (dossier.portefeuille && dossier.portefeuille.datum) ? parseInt(String(dossier.portefeuille.datum).slice(0,4), 10) : null; if(isNaN(vj)) vj = null;
     if(dossier.demo || vj == null) return lijst;
     checks.forEach(c => { if(!c.hercheck){ for(let y = vj + 1; y < c.jaar; y++) lijst.push(y); vj = c.jaar; } });
@@ -940,7 +941,7 @@ function renderOverzicht(){
     const reeksTxt = reeks > 1 ? ' · al ' + reeks + ' jaar op rij' : '';
     h += `<div class="aandacht ${r.beslissing}"><div><b>${esc(r.name)}</b> · ${label}${reeksTxt}<small>${esc(r.toelichting)}</small></div></div>`;
   });
-  if(!actief.length && !gemist.length) h += '<div class="aandacht ok"><div><b>Alles in orde.</b> Geen enkele ETF vraagt dit jaar om actie.</div></div>';
+  if(!actief.length && !gemist.length && !(laatste.nieuweEtfMeldingen || []).length) h += '<div class="aandacht ok"><div><b>Alles in orde.</b> Geen enkele ETF vraagt dit jaar om actie.</div></div>';
   const signalen = laatste.rijen.filter(r => r.beslissing === 'behouden' && r.signalen && r.signalen.length);
   signalen.forEach(r => { h += `<div class="aandacht ok"><div><b>${esc(r.name)}</b> · Behouden, met een opmerking<small>${esc(r.signalen[0])}</small></div></div>`; });
   h += '</div>';

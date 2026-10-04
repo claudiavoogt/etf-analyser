@@ -97,6 +97,14 @@ select option{background:#1A1F36}
 .btn-morningstar:hover{background:rgba(62,220,177,0.1);border-color:var(--mint)}
 .result-isin{font-size:11px;color:var(--mint);font-weight:600;margin-left:8px}
 .result-toelichting{font-family:'Montserrat',sans-serif;font-size:13px;color:var(--text-muted);line-height:1.6;margin-top:6px;font-weight:600}
+.nieuw-uitleg{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);line-height:1.5;padding-bottom:6px}
+.nm-kaart{margin-bottom:16px;padding:14px 12px 8px;border-radius:14px;background:var(--card,#212645);border:1px solid var(--border,#2e3255)}
+.nm-titel{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mint);margin:0 6px 10px}
+.nm-rij{display:flex;align-items:flex-start;gap:12px;padding:10px;margin-bottom:6px;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;line-height:1.55;color:#fff}
+.nm-icoon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0;color:#fff}
+.nm-rood{background:rgba(226,27,112,.07)}
+.nm-rood .nm-icoon{background:var(--fuchsia);box-shadow:0 0 0 4px rgba(226,27,112,.22)}
+.nm-oranje .nm-icoon{background:var(--oranje);box-shadow:0 0 0 4px rgba(255,107,53,.2)}
 .result-herc{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);margin-top:6px}
 .result-herc b{color:var(--oranje);font-weight:800}
 .result-toelichting.behouden{color:var(--mint)}
@@ -177,6 +185,8 @@ select option{background:#1A1F36}
 
     <div id="portefeuille-waarschuwing" style="display:none;margin-bottom:16px;padding:12px 16px;border-radius:8px;background:rgba(255,107,53,0.14);border:1.5px solid var(--oranje);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:var(--oranje);line-height:1.6"></div>
 
+    <div id="nieuw-etf-meldingen" style="display:none"></div>
+
     <div class="metrics">
       <div class="metric"><div class="metric-label">Totaal</div><div class="metric-val" id="m-totaal">0</div></div>
       <div class="metric"><div class="metric-label">Behouden</div><div class="metric-val" id="m-behouden" style="color:var(--mint)">0</div></div>
@@ -218,7 +228,7 @@ select option{background:#1A1F36}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // Zoekfunctie draait cross-domain op de hoofdtool (etf-analyser.claudiavoogt.nl) — geen eigen database in dit project
-const ZOEK_API_BASE = 'https://etf-analyser.claudiavoogt.nl';
+const ZOEK_API_BASE = '';   // zelfde site: de gecombineerde tool heeft de database zelf, geen aanroep naar een ander domein meer
 
 let oudeData = null;      // geparseerde vorige-situatie JSON (bootstrap of eigen jaarcheck-export)
 let oudeBron = null;      // 'analyzer' | 'jaarcheck'
@@ -364,6 +374,7 @@ function vulNieuwEtfUitZoek(rowId, i){
   document.getElementById(rowId+'-isin').value = etf.isin || '';
   document.getElementById(rowId+'-sector').value = etf.sector || '';
   document.getElementById(rowId+'-region').value = etf.region || '';
+  document.getElementById(rowId+'-div').value = etf.div || '';
   document.getElementById(rowId+'-ter').value = etf.ter || '';
   document.getElementById(rowId+'-sug').style.display = 'none';
 }
@@ -373,6 +384,7 @@ async function herzoekISIN(rowId){
   if(etf){
     document.getElementById(rowId+'-sector').value = etf.sector || '';
     document.getElementById(rowId+'-region').value = etf.region || '';
+    document.getElementById(rowId+'-div').value = etf.div || '';
     document.getElementById(rowId+'-ter').value = etf.ter || '';
   } else {
     alert('Geen match gevonden in de database voor dit ISIN.');
@@ -502,8 +514,16 @@ function nieuwRowHtml(id, n){
         </div>
       </div>
     </div>
+    <div class="row4 fv" style="grid-template-columns:1fr 3fr">
+      <div>
+        <label>Rendement 5 jaar <span>(% p.j.)</span></label>
+        <input type="number" id="${id}-r5" placeholder="bijv. 12.5" step="0.1">
+      </div>
+      <div class="nieuw-uitleg">Voor een nieuwe ETF doen we dezelfde instapcheck als in de Analyse: rendement, sectorspreiding, uitkerend dividend en Neutral. Zo kom je niet makkelijker binnen dan bij de start.</div>
+    </div>
     <input type="hidden" id="${id}-sector" value="">
     <input type="hidden" id="${id}-region" value="">
+    <input type="hidden" id="${id}-div" value="">
   </div>`;
 }
 
@@ -567,12 +587,35 @@ function getNieuweSituatie(){
       fondsvolume: fondsvolumeInMln(id),
       sector: document.getElementById(id+'-sector').value || '',
       region: document.getElementById(id+'-region').value || '',
+      name: (document.getElementById(id+'-zoeknaam') || {}).value || '',
+      div: (document.getElementById(id+'-div') || {}).value || '',
+      r5: (() => { const v = parseFloat((document.getElementById(id+'-r5') || {}).value); return isNaN(v) ? null : v; })(),
     });
   });
   return rows;
 }
 
+async function vulNieuweEtfsAan(){
+  // Typt iemand alleen een ISIN, dan halen we sector, dividendtype en naam alsnog op, anders kan de instapcheck ze niet gebruiken.
+  for(const id of extraIds){
+    const isinEl = document.getElementById(id+'-isin'); if(!isinEl || !isinEl.value) continue;
+    const sec = document.getElementById(id+'-sector');
+    if(sec && sec.value && document.getElementById(id+'-div').value) continue;
+    try{
+      const etf = await zoekOpISIN(isinEl.value);
+      if(etf){
+        sec.value = etf.sector || sec.value;
+        document.getElementById(id+'-region').value = etf.region || document.getElementById(id+'-region').value;
+        document.getElementById(id+'-div').value = etf.div || '';
+        const nm = document.getElementById(id+'-zoeknaam'); if(nm && !nm.value) nm.value = etf.name || '';
+        const t = document.getElementById(id+'-ter'); if(t && !t.value) t.value = etf.ter || '';
+      }
+    }catch(e){ console.error('Aanvullen mislukt', e); }
+  }
+}
+
 async function runAnalyse(){
+  await vulNieuweEtfsAan();
   const nieuweEtfs = getNieuweSituatie();
 
   const btn = document.getElementById('analyse-btn');
@@ -671,6 +714,13 @@ function renderResultaten(data){
   } else {
     waarschuwingBox.style.display = 'none';
   }
+
+  const nm = document.getElementById('nieuw-etf-meldingen');
+  const mel = data.nieuweEtfMeldingen || [];
+  if(mel.length){
+    nm.innerHTML = '<div class="nm-kaart"><div class="nm-titel">Let op bij je nieuwe ETF</div>' + mel.map(m => `<div class="nm-rij ${m.t === 'r' ? 'nm-rood' : 'nm-oranje'}"><span class="nm-icoon">⚑</span><span>${m.msg}</span></div>`).join('') + '</div>';
+    nm.style.display = 'block';
+  } else { nm.innerHTML = ''; nm.style.display = 'none'; }
 
   // Zelfde volgorde als de ingevoerde ETF's, geen sortering op besluit
   document.getElementById('resultaten-list').innerHTML = data.resultaten.map(resultRowHtml).join('');
@@ -814,6 +864,10 @@ async function downloadPDF(){
 
     if(data.portefeuilleWaarschuwing){
       tabelHtml = `<div style="border:1.5px solid #c07840;background:#fdf3ea;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:10px;font-weight:700;color:#c07840;line-height:1.5">⚠ ${data.portefeuilleWaarschuwing}</div>` + tabelHtml;
+    }
+    if((data.nieuweEtfMeldingen || []).length){
+      const nmPdf = data.nieuweEtfMeldingen.map(m => `<div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;line-height:1.5;color:${m.t === 'r' ? '#c0003a' : '#c07840'};margin-top:4px">&#9873; ${m.msg}</div>`).join('');
+      tabelHtml = `<div style="border:1.5px solid ${data.nieuweEtfMeldingen.some(m => m.t === 'r') ? '#c0003a' : '#c07840'};background:#fdf3ea;border-radius:8px;padding:10px 14px;margin-bottom:14px"><div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#6B2D84">Let op bij je nieuwe ETF</div>${nmPdf}</div>` + tabelHtml;
     }
 
     let disclaimerHtml = `<div style="border:1px solid #d0c4e0;border-radius:8px;padding:12px 16px;margin-top:6px">

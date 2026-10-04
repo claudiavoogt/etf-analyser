@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kernMeldingen } from '../../../lib/kern';
+import { nieuweEtfMeldingen, PETF } from '../../../lib/portefeuille';
 
 /**
  * ETF Jaarcheck — beslismatrix
@@ -112,6 +113,8 @@ type OudETF = {
 type NieuwETF = {
   id: string;
   isin?: string;
+  name?: string;
+  r5?: number | null; // rendement 5 jaar (%), voor de instapcheck van een nieuwe ETF
   trackingDiff?: number | null;
   msStars?: string;
   ms?: string;
@@ -846,7 +849,7 @@ export async function POST(request: NextRequest) {
       resultaten.push({
         id: n.id,
         isin: n.isin || '',
-        name: n.isin || n.id,
+        name: n.name || n.isin || n.id,
         beslissing,
         toelichting: `Nieuw toegevoegd sinds de vorige check — geen historie. ${toelichting}`,
         sterrenSignaal: null,
@@ -890,6 +893,35 @@ export async function POST(request: NextRequest) {
         .map(r => ({ isin: r.isin, name: r.name }))
     );
 
+    // Instapcheck: nieuwe ETF's krijgen dezelfde portefeuilleregels als bij de start van de Analyse
+    // (sectorspreiding, uitkerend dividend, Neutral-maximum, 5-jaarsrendement, dubbele core). Zonder weging.
+    const nieuweIds = new Set<string>();
+    const portefeuille: PETF[] = [];
+    resultaten.filter(r => r.beslissing !== 'verwijderd').forEach(r => {
+      const nm = nieuwMap.get((r.isin || r.id || '').toUpperCase()) || nieuw.etfs.find(x => x.id === r.id);
+      const oudE = vorigMap.get((r.isin || r.name || r.id || '').toUpperCase());
+      const isNieuw = !oudE;
+      if (isNieuw) nieuweIds.add(r.id);
+      portefeuille.push({
+        id: r.id,
+        name: r.name || r.isin || r.id,
+        isin: r.isin || '',
+        sector: (r.sector && r.sector.nieuw) || '',
+        ms: (r.ms && r.ms.nieuw) || '',
+        div: (nm && nm.div) || (oudE && oudE.div) || '',
+        r5: isNieuw ? ((nm && typeof nm.r5 === 'number') ? nm.r5 : null) : null,
+      });
+    });
+    const nieuweEtfMeldingenLijst = nieuweEtfMeldingen(portefeuille, nieuweIds);
+    // Een nieuwe ETF met een melding mag niet "Alles in orde" zeggen: de toelichting verwijst naar de melding.
+    resultaten.forEach(r => {
+      if (!nieuweIds.has(r.id) || r.beslissing !== 'behouden') return;
+      if (!nieuweEtfMeldingenLijst.some(m => m.ids.includes(r.id))) return;
+      if (typeof r.toelichting === 'string' && r.toelichting.includes('Alles in orde, geen actie.')) {
+        r.toelichting = r.toelichting.replace('Alles in orde, geen actie.', 'Rating, sterren, kosten en fondsvolume zijn in orde, maar lees de melding bovenaan over je nieuwe ETF.');
+      }
+    });
+
     return NextResponse.json(
       {
         datum: nieuw.datum || new Date().toISOString().slice(0, 10),
@@ -899,6 +931,7 @@ export async function POST(request: NextRequest) {
         resultaten,
         portefeuilleWaarschuwing,
         kernWaarschuwingen,
+        nieuweEtfMeldingen: nieuweEtfMeldingenLijst,
         samenvatting: {
           totaal: resultaten.length,
           behouden,

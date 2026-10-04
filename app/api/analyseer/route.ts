@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kernMeldingen } from '../../../lib/kern';
+import { rendementFlags, neutralFlags, sectorFlags, uitkerendFlags } from '../../../lib/portefeuille';
 
 interface ETF {
   id: string;
@@ -90,62 +91,19 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
     if (e.ter && e.ter > 0.5) f.push({ t: 'w', msg: `${e.name}: Kosten (TER) ${e.ter.toFixed(2)}% — boven 0.50% richtlijn` });
     if (e.aum && e.aum < 500) f.push({ t: 'r', msg: `${e.name}: Fondsomvang €${e.aum.toLocaleString('nl-NL')}M — onder het minimum van €500 mln. Verhoogd liquiditeits- en sluitingsrisico.` });
 
-    // Geen 5-jaarsrendement ingevoerd: invoercontrole, eigen verantwoording klant. Lege rijen worden overgeslagen.
-    if (e.r5 == null && (e.name || e.weight > 0)) {
-      f.push({ t: 'w', msg: `${e.name || 'ETF'}: Let op: er is bij deze ETF geen 5 jaars rendement ingevoerd. Controleer je invoer.` });
-    }
-
-    if (e.isin !== 'IE00BK5BQT80') {
-      if (e.r5 != null && e.r5 < 10) f.push({ t: 'r', msg: `${e.name}: Rendement 5 jaar ${e.r5.toFixed(1)}% — zit onder richtlijn van 10%` });
-    }
+    // 5-jaarsrendement (ontbreekt of onder 10%): gedeelde regel in lib/portefeuille.ts
+    rendementFlags(e).forEach(x => f.push(x));
   });
 
-  // Startregel: max. 2 ETF's op Neutral, de rest minimaal Bronze.
-  // Negative wordt al per ETF rood gevlagd, Neutral-per-ETF blijft oranje; hier alleen de portefeuillecheck.
-  const neutrals = etfs.filter(e => e.ms === 'Neutral');
-  if (neutrals.length > 2) {
-    const namen = neutrals.map(e => e.name || 'ETF zonder naam').join(', ');
-    f.push({ t: 'r', msg: `${neutrals.length} ETF's op Neutral (${namen}). Bij aanvang mogen er maximaal 2 ETF's op Neutral staan, de rest moet minimaal Bronze zijn.` });
-  }
+  // Startregel: max. 2 ETF's op Neutral (gedeelde regel in lib/portefeuille.ts)
+  neutralFlags(etfs).forEach(x => f.push(x));
 
-  // Sectorspreiding: per sector max. 1 aanvullende ETF (rood vanaf 2).
-  // Technologie is ruimer: 1 is prima, 2 is oranje (bewuste keuze?), vanaf 3 rood en afgeraden.
-  // De core telt niet mee. Brede-markt-ETF's (regio-spreiders) en lege sectoren worden overgeslagen.
-  const SECTOR_UITGEZONDERD = ['breed markt'];
-  const SECTOR_MAX: Record<string, number> = { technologie: 2 }; // aantal dat nog (oranje) getolereerd wordt
-  const perSector = new Map<string, { label: string; namen: string[] }>();
-  etfs.filter(e => e.id !== 'core').forEach(e => {
-    const label = (e.sector || '').trim();
-    const key = label.toLowerCase();
-    if (!key || SECTOR_UITGEZONDERD.includes(key)) return;
-    const g = perSector.get(key) || { label, namen: [] };
-    g.namen.push(e.name || 'ETF zonder naam');
-    perSector.set(key, g);
-  });
-  perSector.forEach((g, key) => {
-    const max = SECTOR_MAX[key] ?? 1;
-    const n = g.namen.length;
-    const namen = g.namen.join(', ');
-    if (n > max) {
-      const advies = max > 1
-        ? `Dit wordt afgeraden, kies een andere sector of regio voor voldoende spreiding.`
-        : `Maximaal 1 aanvullende ETF per sector is verstandig voor voldoende spreiding, kies een andere sector of regio.`;
-      f.push({ t: 'r', msg: `${n} aanvullende ETF's in de sector ${g.label} (${namen}). ${advies}` });
-    } else if (max > 1 && n > 1) {
-      f.push({ t: 'w', msg: `Let op: ${n} aanvullende ETF's in de sector ${g.label} (${namen}) is het maximum. Zorg dat dit een bewuste keuze is en denk aan voldoende spreiding.` });
-    }
-  });
+  // Sectorspreiding (gedeelde regel in lib/portefeuille.ts)
+  sectorFlags(etfs).forEach(x => f.push(x));
 
-  const uitkerendETFs = etfs.filter(e => e.div === 'Uitkeren');
-  const alleMetDiv = etfs.filter(e => e.div);
-  if (alleMetDiv.length > 0) {
-    const uW = uitkerendETFs.reduce((s, e) => s + e.weight, 0);
-    const dT = alleMetDiv.reduce((s, e) => s + e.weight, 0);
-    const uP = dT > 0 ? (uW / dT) * 100 : 0;
-    if (uitkerendETFs.length > 1) f.push({ t: 'r', msg: `${uitkerendETFs.length} ETF's met uitkerend dividend geselecteerd, max. 1 toegestaan.` });
-    else if (uP >= 100) f.push({ t: 'r', msg: `LET OP!! Kies voor herbeleggen ETF's om het compoundingeffect te maximaliseren.` });
-    else if (uitkerendETFs.length >= 1) uitkerendETFs.forEach(e => f.push({ t: 'w', msg: `${e.name}: Let op! Dividend wordt uitgekeerd ipv herbelegd. Dit geeft verlies van compounding effect.` }));
-  }
+  const uW0 = etfs.filter(e => e.div === 'Uitkeren').reduce((s, e) => s + e.weight, 0);
+  const dT0 = etfs.filter(e => e.div).reduce((s, e) => s + e.weight, 0);
+  uitkerendFlags(etfs, dT0 > 0 ? (uW0 / dT0) * 100 : 0).forEach(x => f.push(x));
 
   // Core-type: dubbele core (2 wereld of 2 S&P 500 = rood) en overlap wereld + S&P 500 (oranje).
   kernMeldingen(etfs).forEach(k => f.push(k));
