@@ -443,7 +443,7 @@ function bepaalBeslissing(opts: {
         // Bewust aangevinkt: er bestaat geen TD. Beoordelen op wat wel bekend is, zonder alarm.
         basis = {
           beslissing: 'behouden',
-          toelichting: 'Geen trackingdifference beschikbaar. Beoordeeld op de gegevens die wel bekend zijn: sterren, rating, kosten en fondsvolume. Geen actie nodig.',
+          toelichting: 'Geen trackingdifference bekend/ingevuld. Beoordeling vindt plaats met de gegevens die wel bekend zijn.',
         };
       } else {
         basis = {

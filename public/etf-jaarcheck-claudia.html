@@ -795,14 +795,14 @@ async function downloadPDF(){
           <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:${kleur}">${labelPerBeslissing[r.beslissing]||r.beslissing}</span>
         </div>
         ${diffsHtmlPdf}
-        <div style="font-size:11px;color:${r.tdIsHoofdreden ? '#c07840' : '#333'};margin-top:6px;line-height:1.5">${r.toelichting}</div>
-        ${r.tdSignaal ? `<div style=\"font-size:10px;color:#c07840;margin-top:4px;font-style:italic\"><span style=\"font-size:13px;font-style:normal\">⚠</span> ${r.tdSignaal}</div>` : ''}
-        ${r.sterrenSignaal ? `<div style=\"font-size:10px;color:#c07840;margin-top:4px;font-style:italic\"><span style=\"font-size:13px;font-style:normal\">⚠</span> ${r.sterrenSignaal}</div>` : ''}
-        ${r.ratingSignaal ? `<div style=\"font-size:10px;color:#c07840;margin-top:4px;font-style:italic\"><span style=\"font-size:13px;font-style:normal\">⚠</span> ${r.ratingSignaal}</div>` : ''}
-        ${r.fondsvolumeSignaal ? `<div style=\"font-size:10px;color:#c07840;margin-top:4px;font-style:italic\"><span style=\"font-size:13px;font-style:normal\">⚠</span> ${r.fondsvolumeSignaal}</div>` : ''}
-        ${r.kostenSignaal ? `<div style=\"font-size:10px;color:#c07840;margin-top:4px;font-style:italic\"><span style=\"font-size:13px;font-style:normal\">⚠</span> ${r.kostenSignaal}</div>` : ''}
-        ${r.kwaliteitSignaal ? `<div style=\"font-size:10px;color:#c07840;margin-top:4px;font-style:italic\"><span style=\"font-size:13px;font-style:normal\">⚠</span> ${r.kwaliteitSignaal}</div>` : ''}
-        ${r.neutraalSignaal ? `<div style=\"font-size:10px;color:#c07840;margin-top:4px;font-style:italic\"><span style=\"font-size:13px;font-style:normal\">⚠</span> ${r.neutraalSignaal}</div>` : ''}
+        <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:${r.tdIsHoofdreden ? '#c07840' : '#333'};margin-top:6px;line-height:1.5;font-style:normal">${r.toelichting}</div>
+        ${r.tdSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.tdSignaal}</div>` : ''}
+        ${r.sterrenSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.sterrenSignaal}</div>` : ''}
+        ${r.ratingSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.ratingSignaal}</div>` : ''}
+        ${r.fondsvolumeSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.fondsvolumeSignaal}</div>` : ''}
+        ${r.kostenSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.kostenSignaal}</div>` : ''}
+        ${r.kwaliteitSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.kwaliteitSignaal}</div>` : ''}
+        ${r.neutraalSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.neutraalSignaal}</div>` : ''}
       </div>`;
     });
     tabelHtml += '</div>';
