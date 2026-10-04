@@ -328,10 +328,20 @@ function huidigeUitgangssituatie(){
   return (p && Array.isArray(p.etfs) && p.etfs.length) ? p : null;
 }
 
+// Is er werk dat nog niet in een opgeslagen dossier staat? Ook al tijdens de Analyse (ETF's ingevuld, nog geen dossier) en bij een Jaarcheck-uitkomst die nog niet is toegevoegd.
+function nietOpgeslagen(){
+  if(dossier && dossier.demo) return false;
+  return !!(dirty || (!dossier && analyseHeeftInhoud()) || (pendingCheck && !pendingToegevoegd));
+}
+const NIET_OPG = ' <span class="dot" title="Nog niet opgeslagen">● niet opgeslagen</span>';
+let laatsteNietOpg = null;
+setInterval(() => { const nu = nietOpgeslagen(); if(nu !== laatsteNietOpg) refreshUI(); }, 1000);
+
 function refreshUI(){
+  laatsteNietOpg = nietOpgeslagen();
   // status bovenin
   const st = $('dossier-status');
-  if(!dossier){ st.innerHTML = 'Nog geen dossier'; }
+  if(!dossier){ st.innerHTML = 'Nog geen dossier' + (laatsteNietOpg ? NIET_OPG : ''); }
   else {
     const n = dossier.checks.filter(c => !c.hercheck).length;
     const laatst = dossier.checks.length ? ' · laatst ' + fmtDatum(dossier.checks[dossier.checks.length-1].datum) : '';
@@ -340,10 +350,10 @@ function refreshUI(){
       : '<b>' + n + ' jaarcheck' + (n === 1 ? '' : 's') + '</b>' + laatst;
     st.innerHTML = (dossier.demo ? '<b style="color:var(--oranje)">VOORBEELDDATA</b> · ' : 'Dossier: ')
       + kern
-      + (dirty ? ' <span class="dot" title="Nog niet opgeslagen">● niet opgeslagen</span>' : '');
+      + (laatsteNietOpg ? NIET_OPG : '');
   }
   $('btn-save').disabled = !!(dossier && dossier.demo);
-  $('btn-save').classList.toggle('btn-primary', !!dossier && !dossier.demo && dirty);
+  $('btn-save').classList.toggle('btn-primary', !(dossier && dossier.demo) && laatsteNietOpg);
   updateAnalyseBar();
   updateJcBar();
   updateJanMelding();
