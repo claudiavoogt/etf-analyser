@@ -53,7 +53,8 @@ import { kernMeldingen } from '../../../lib/kern';
  *     traject => wisselen (dit overschrijft de basisbeslissing).
  * - Rating Neutral + fondsvolume 2 checks op rij gedaald => wisselen.
  * - Rating Neutral (los van trackingdifference) => minimaal "monitoren": hercheck over 6 maanden. Stond de ETF vorige
- *   check ook al op Neutral, zijn de sterren >= 3 en is het fondsvolume niet gedaald => behouden (Neutral is dan prima).
+ *   check ook al op Neutral, zijn de sterren >= 3, niet lager dan vorige check, en is het fondsvolume niet gedaald
+ *   => behouden (Neutral is dan prima). Zijn sterren of fondsvolume wel gedaald => monitoren (hercheck na 6 maanden).
  * - Portefeuille-waarschuwing (los van de individuele beslissing per ETF): 2 of meer ETF's staan in dezelfde
  *   jaarcheck-run op Neutral => algemene waarschuwing bij de samenvatting. Bij 1 ETF op Neutral: geen melding.
  * - Kosten (TER) moeten in alle gevallen onder de 0,5% blijven. Boven 0,5% (tot en met 0,55%) mag alleen
@@ -546,12 +547,16 @@ function bepaalBeslissing(opts: {
     };
     tdIsHoofdreden = false;
   }
-  const neutraalStabiel = wasNeutralVorigJaar && sterren >= 3 &&
-    !(fondsvolumeOud != null && fondsvolumeNieuw != null && fondsvolumeNieuw < fondsvolumeOud);
+  const sterrenOud = starCount(msStarsOud);
+  const sterrenGedaald = sterrenOud > 0 && sterren > 0 && sterren < sterrenOud;
+  const volumeGedaald = fondsvolumeOud != null && fondsvolumeNieuw != null && fondsvolumeNieuw < fondsvolumeOud;
+  const neutraalStabiel = wasNeutralVorigJaar && sterren >= 3 && !sterrenGedaald && !volumeGedaald;
   if (isNeutralNu && basis.beslissing === 'behouden' && !neutraalStabiel) {
     basis = {
       beslissing: 'monitoren',
-      toelichting: `Rating staat op Neutral${msOud && msOud !== 'Neutral' ? ` (vorige check: ${msOud})` : ''}. Nog niet wisselen, wel in de gaten houden: hercheck over 6 maanden.`,
+      toelichting: wasNeutralVorigJaar
+        ? `Rating blijft Neutral, maar de sterren of het fondsvolume zijn gedaald. Nog niet wisselen, wel in de gaten houden: hercheck over 6 maanden.`
+        : `Rating is Neutral geworden${msOud ? ` (vorige check: ${msOud})` : ''}. Nog niet wisselen, wel in de gaten houden: hercheck over 6 maanden.`,
     };
     tdIsHoofdreden = false;
   }
@@ -876,15 +881,8 @@ export async function POST(request: NextRequest) {
     // Portefeuille-waarschuwing: los van de individuele beslissing per ETF. 2 of meer ETF's op Neutral
     // in dezelfde jaarcheck-run => algemene waarschuwing. Bij 1 ETF op Neutral: geen melding.
     const neutraalCount = resultaten.filter(r => r.beslissing !== 'verwijderd' && r.ms && r.ms.nieuw === 'Neutral').length;
-    // De melding staat bij de betreffende ETF's zelf (neutraalSignaal), niet meer als blok voor de hele portefeuille.
+    // Geen aparte Neutral-melding meer: een stabiele Neutral is prima, en de beslissing per ETF zegt zelf wanneer hercheck nodig is.
     const portefeuilleWaarschuwing: string | null = null;
-    if (neutraalCount >= 2) {
-      for (const r of resultaten as any[]) {
-        if (r.beslissing !== 'verwijderd' && r.ms && r.ms.nieuw === 'Neutral') {
-          r.neutraalSignaal = `Let op: ${neutraalCount} ETF's in je portefeuille staan op Neutral, dus ook deze. Bij 2 of meer is dat een aandachtspunt voor de kwaliteit van je spreiding. Check deze ETF over 6 maanden nog een keer.`;
-        }
-      }
-    }
 
     // Core-type check op de portefeuille na deze check (verwijderde ETF's tellen niet mee).
     const kernWaarschuwingen = kernMeldingen(

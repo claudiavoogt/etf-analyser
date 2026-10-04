@@ -678,10 +678,6 @@ function updateJcBar(){
   tx.innerHTML = pendingToegevoegd
     ? '<b>Toegevoegd aan je Overzicht.</b> Vergeet niet je dossier op te slaan, dan kun je er volgend jaar mee verder.'
     : 'Resultaat klaar: <b>' + s.behouden + ' behouden · ' + s.monitoren + ' monitoren · ' + s.wisselen + ' wisselen</b>. Voeg het toe aan je Overzicht om het te bewaren in je dossier.';
-  const km = pendingCheck.kernWaarschuwingen || [];
-  if(km.length && !pendingToegevoegd){
-    tx.innerHTML += km.map(k => '<div class="aandacht ' + (k.t === 'r' ? 'wisselen' : 'monitoren') + '" style="margin:8px 0 0"><div>' + (k.t === 'r' ? '⛔ ' : '⚠ ') + esc(k.msg) + '</div></div>').join('');
-  }
   btn.disabled = pendingToegevoegd;
   btn.textContent = pendingToegevoegd ? 'Toegevoegd ✓' : 'Voeg toe aan overzicht →';
 }
