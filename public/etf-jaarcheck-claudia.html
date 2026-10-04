@@ -91,6 +91,8 @@ select option{background:#1A1F36}
 .result-row.nieuw{border-left-color:#4682DC}
 .result-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .result-name{font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;color:var(--wit)}
+.geen-td{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:var(--grijs,#9aa0c4);text-transform:none;letter-spacing:0;font-weight:600;cursor:pointer}
+.geen-td input{width:14px;height:14px;margin:0;accent-color:var(--mint)}
 .btn-morningstar{border-color:rgba(62,220,177,0.35);color:var(--mint)}
 .btn-morningstar:hover{background:rgba(62,220,177,0.1);border-color:var(--mint)}
 .result-isin{font-size:11px;color:var(--mint);font-weight:600;margin-left:8px}
@@ -313,6 +315,12 @@ function openMorningstar(isin){
 function openMorningstarFromField(rowId){
   openMorningstar(document.getElementById(rowId+'-isin').value);
 }
+function toggleGeenTD(id){
+  const cb = document.getElementById(id+'-geentd'), inp = document.getElementById(id+'-trackingdiff');
+  if(!cb || !inp) return;
+  if(cb.checked){ inp.value = ''; inp.disabled = true; inp.placeholder = 'geen TD'; }
+  else { inp.disabled = false; inp.placeholder = 'bijv. 0.8'; }
+}
 function openTrackingDiffFromField(rowId){
   const isin = document.getElementById(rowId+'-isin').value;
   openTrackingDiff(isin);
@@ -402,6 +410,7 @@ function bestaandRowHtml(etf){
           <input type="number" id="${id}-trackingdiff" placeholder="bijv. 0.8 of -1.2" step="0.01" style="flex:1">
           <button class="btn btn-sm" type="button" onclick="openTrackingDiff('${(etf.isin||'').replace(/'/g,"&#39;")}')" title="Bekijk op trackingdifferences.com">🔗 TD</button>
         </div>
+        <label class="geen-td"><input type="checkbox" id="${id}-geentd" onchange="toggleGeenTD('${id}')"> Geen TD beschikbaar</label>
       </div>
       <div>
         <label>MS Sterren <span>(nu)</span></label>
@@ -470,6 +479,7 @@ function nieuwRowHtml(id, n){
           <input type="number" id="${id}-trackingdiff" placeholder="bijv. 0.8" step="0.01" style="flex:1">
           <button class="btn btn-sm" type="button" onclick="openTrackingDiffFromField('${id}')" title="Bekijk op trackingdifferences.com">🔗 TD</button>
         </div>
+        <label class="geen-td"><input type="checkbox" id="${id}-geentd" onchange="toggleGeenTD('${id}')"> Geen TD beschikbaar</label>
       </div>
       <div>
         <label>MS Sterren</label>
@@ -531,6 +541,7 @@ function getNieuweSituatie(){
       isin: etf.isin || '',
       verwijderd,
       trackingDiff: verwijderd ? null : (parseFloat(document.getElementById(id+'-trackingdiff').value) ?? null),
+      geenTD: !verwijderd && !!(document.getElementById(id+'-geentd') || {}).checked,
       msStars: verwijderd ? '' : (document.getElementById(id+'-stars').value || ''),
       ms: verwijderd ? '' : (document.getElementById(id+'-ms').value || ''),
       ter: verwijderd ? null : (parseFloat(document.getElementById(id+'-ter').value) || null),
@@ -547,6 +558,7 @@ function getNieuweSituatie(){
       isin,
       verwijderd: false,
       trackingDiff: parseFloat(document.getElementById(id+'-trackingdiff').value) || null,
+      geenTD: !!(document.getElementById(id+'-geentd') || {}).checked,
       msStars: document.getElementById(id+'-stars').value || '',
       ms: document.getElementById(id+'-ms').value || '',
       ter: parseFloat(document.getElementById(id+'-ter').value) || null,

@@ -31,6 +31,8 @@ import { kernMeldingen } from '../../../lib/kern';
  *   (puur een tekstmelding, geen aparte beslislogica). In de HTML wordt deze specifieke melding altijd
  *   oranje getoond (tdIsHoofdreden), ook al is de decision "behouden" — dat blijft een aandachtspunt, geen
  *   "helemaal in orde".
+ * - Vinkt de gebruiker "Geen TD beschikbaar" aan (geenTD) => dezelfde beoordeling op de bekende gegevens, maar zonder
+ *   rode/oranje melding: neutrale toelichting, geen tdSignaal.
  * - Presteert boven/rond benchmark (geen onderperformance) EN trackingdifference wél bekend EN rating in orde
  *   => toelichting is puur "Alles in orde, geen actie." (geen cijfers herhalen — alleen bij een probleem of
  *   aandachtspunt worden details getoond).
@@ -118,6 +120,7 @@ type NieuwETF = {
   div?: string;
   fondsvolume?: number | null;
   verwijderd?: boolean;
+  geenTD?: boolean; // gebruiker vinkt aan: er is geen trackingdifference beschikbaar
 };
 
 type Payload = {
@@ -167,6 +170,7 @@ function bepaalRichting(oudWaarde: number, nieuwWaarde: number): 'beter' | 'slec
 
 function bepaalBeslissing(opts: {
   trackingDiff: number | null;
+  geenTD?: boolean;
   msNieuw?: string;
   msOud?: string;
   msStarsNieuw?: string;
@@ -204,7 +208,7 @@ function bepaalBeslissing(opts: {
   tdIsHoofdreden: boolean;
 } {
   const {
-    trackingDiff, msNieuw, msOud, fondsvolumeOud, fondsvolumeGedaaldJaren, msStarsNieuw, msStarsOud, priorConsecutive, fondsvolumeNieuw, priorFondsvolumeOnderMinimumJaren,
+    trackingDiff, geenTD, msNieuw, msOud, fondsvolumeOud, fondsvolumeGedaaldJaren, msStarsNieuw, msStarsOud, priorConsecutive, fondsvolumeNieuw, priorFondsvolumeOnderMinimumJaren,
     terOud, terNieuw, priorTerGestegenJaren,
     priorSterrenOnder3Jaren, priorRatingGedaaldJaren, priorRatingNeutralJaren,
     priorSterrenBijStartNeutralStreak, priorNeutraalDalendSterrenGewaarschuwd,
@@ -454,11 +458,19 @@ function bepaalBeslissing(opts: {
     } else {
       // Geen TD bekend: geen aparte escalatie naar "monitoren" — gewoon beoordelen op wat wél bekend is
       // (sterren/rating). Die checks lopen hierboven al onafhankelijk van TD.
-      basis = {
-        beslissing: 'behouden',
-        toelichting: 'Geen trackingdifference bekend/ingevuld, maak zelf de berekening.',
-      };
-      tdIsHoofdreden = true;
+      if (geenTD) {
+        // Bewust aangevinkt: er bestaat geen TD. Beoordelen op wat wel bekend is, zonder alarm.
+        basis = {
+          beslissing: 'behouden',
+          toelichting: 'Geen trackingdifference beschikbaar. Beoordeeld op de gegevens die wel bekend zijn: sterren, rating, kosten en fondsvolume. Geen actie nodig.',
+        };
+      } else {
+        basis = {
+          beslissing: 'behouden',
+          toelichting: 'Geen trackingdifference bekend/ingevuld, maak zelf de berekening.',
+        };
+        tdIsHoofdreden = true;
+      }
     }
   } else {
     // Onder benchmark (trackingdifference > 1.5%)
@@ -675,6 +687,7 @@ export async function POST(request: NextRequest) {
         neutraalDalendSterrenGewaarschuwd, kwaliteitIsHoofdreden, neutraalTrajectIsHoofdreden, tdIsHoofdreden,
       } = bepaalBeslissing({
         trackingDiff,
+        geenTD: !!n.geenTD,
         msNieuw: n.ms,
         msOud: oud.ms,
         msStarsNieuw: n.msStars,
@@ -716,7 +729,7 @@ export async function POST(request: NextRequest) {
 
       // TD-signaal: altijd tonen zodra er geen trackingdifference bekend is, tenzij dat al letterlijk de
       // toelichting van de beslissing zelf is (dan staat het al boven de ETF, geen dubbele melding nodig).
-      const tdSignaal = (trackingDiff == null && !tdIsHoofdreden)
+      const tdSignaal = (trackingDiff == null && !tdIsHoofdreden && !n.geenTD)
         ? 'Geen trackingdifference bekend/ingevuld, maak zelf de berekening.'
         : null;
 
@@ -821,6 +834,7 @@ export async function POST(request: NextRequest) {
         sterrenOnder3Jaren, ratingNeutralJaren, sterrenBijStartNeutralStreak, neutraalDalendSterrenGewaarschuwd, tdIsHoofdreden,
       } = bepaalBeslissing({
         trackingDiff,
+        geenTD: !!n.geenTD,
         msNieuw: n.ms,
         msStarsNieuw: n.msStars,
         priorConsecutive: 0,
@@ -840,7 +854,7 @@ export async function POST(request: NextRequest) {
       else if (beslissing === 'monitoren') monitoren++;
       else if (beslissing === 'wisselen') wisselen++;
 
-      const tdSignaalNieuw = (trackingDiff == null && !tdIsHoofdreden)
+      const tdSignaalNieuw = (trackingDiff == null && !tdIsHoofdreden && !n.geenTD)
         ? 'Geen trackingdifference bekend/ingevuld, maak zelf de berekening.'
         : null;
 
