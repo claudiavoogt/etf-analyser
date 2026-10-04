@@ -1,0 +1,922 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { kernMeldingen } from '../../../lib/kern';
+
+/**
+ * ETF Jaarcheck — beslismatrix
+ * Bestandslocatie in het project: app/api/jaarcheck/route.ts
+ *
+ * Voert Claudia's jaarlijkse kwaliteitscheck per ETF uit op basis van:
+ *  - Benchmarkprestatie (trackingdifference, handmatig opgezocht door de klant op trackingdifferences.com)
+ *  - Morningstar Analyst Rating (Gold/Silver/Bronze/Neutral/Negative)
+ *  - Trend in Morningstar sterren (dalend, 2 jaar op rij = signaal)
+ *  - Fondsvolume (in miljoen euro): harde ondergrens + trend t.o.v. vorig jaar
+ *  - Kosten (TER): harde bovengrens + trend t.o.v. vorig jaar
+ *
+ * KRITIEK — zelfde discipline als analyseer.ts: deze beslislogica leeft UITSLUITEND server-side.
+ * Nooit deze functie of een kopie ervan teruginzetten in de HTML.
+ *
+ * Kernregel (nooit wijzigen zonder Claudia's expliciete akkoord):
+ * - Analyst Rating Negative => altijd direct wisselen, ongeacht trackrecord.
+ * - Fondsvolume onder de harde ondergrens (€250 mln) => altijd direct wisselen, geen uitzonderingen.
+ * - Fondsvolume onder de minimale grens (€500 mln), 1e keer geconstateerd => NIET direct wisselen.
+ *   Altijd minimaal "monitoren" (Check na 6 maanden), ongeacht de rating.
+ * - Fondsvolume nog steeds onder de minimale grens bij de eérstvolgende jaarcheck erna (2 keer op rij)
+ *   => dan pas wisselen, ongeacht rating of trackrecord — het fonds is niet hersteld na de waarschuwing.
+ * - Onderperformance alleen (1 jaar) is nooit een wisselreden zolang rating Bronze of hoger is.
+ * - Wisselen alleen bij: rating Neutral + 2 jaar op rij onderperformance (afwijking >= 1.5%).
+ * - Eerste jaar onderperformance + Neutral => monitoren (Check na 6 maanden), nog niet wisselen.
+ * - Geen trackingdifference beschikbaar/ingevuld => GEEN aparte escalatie naar "monitoren". Decision blijft
+ *   "behouden" (tenzij een andere regel hierboven al iets anders bepaalt) — gewoon beoordelen op wat wél
+ *   bekend is (sterren/rating). Meldingstekst: "Geen trackingdifference bekend/ingevuld, maak zelf de berekening."
+ *   (puur een tekstmelding, geen aparte beslislogica). In de HTML wordt deze specifieke melding altijd
+ *   oranje getoond (tdIsHoofdreden), ook al is de decision "behouden" — dat blijft een aandachtspunt, geen
+ *   "helemaal in orde".
+ * - Presteert boven/rond benchmark (geen onderperformance) EN trackingdifference wél bekend EN rating in orde
+ *   => toelichting is puur "Alles in orde, geen actie." (geen cijfers herhalen — alleen bij een probleem of
+ *   aandachtspunt worden details getoond).
+ * - Teruglopend fondsvolume t.o.v. vorig jaar (maar nog boven de minimale grens) is een signaal/waarschuwing,
+ *   geen zelfstandige wisselreden — puur "in de gaten houden".
+ * - Rating-signaal: zodra de rating dit jaar gedaald is (1 jaar), los signaal onder de ETF — zelfde opzet
+ *   als het sterren-signaal. Bij 2 jaar op rij gedaald neemt kwaliteitSignaal/het Neutraal-traject het over
+ *   (uitgebreidere tekst), dus dan verschijnt dit signaal niet nogmaals.
+ * - Sterren/rating kwaliteit (per ETF, jaar-op-jaar, "2e jaarcheck" = 2 keer op rij geconstateerd):
+ *   - Sterren <3 (1 of 2), 2e jaarcheck op rij in die staat, rating Neutral of Bronze => wisselen.
+ *   - Sterren <3, 2e jaarcheck op rij, rating Silver of Gold => geen wissel, signaal, volgend jaar herchecken.
+ *   - Sterren >=3, rating 2 jaarchecks op rij gedaald (richting t.o.v. vorig jaar), nu Bronze of Neutral
+ *     => geen wissel, signaal, volgend jaar herchecken.
+ *   - Sterren >=3, rating 2 jaarchecks op rij gedaald, nog steeds Gold of Silver => niets, geen signaal.
+ *   - Precies 3 sterren valt in de ">=3"-band — geen van de "<3"-regels is daar van toepassing.
+ * - Rating Neutral + dalende sterren, los traject (handmatige hercheck, niet gebonden aan de jaarlijkse cyclus):
+ *   - Rating 2 jaar op rij Neutral EN sterren zijn over die hele 2-jaarsperiode gedaald => decision wordt
+ *     "monitoren" (Check na 6 maanden), met een melding dat een handmatige hercheck nodig is.
+ *   - Bij die hercheck nog steeds Neutral EN sterren nog steeds niet hersteld t.o.v. het startpunt van dit
+ *     traject => wisselen (dit overschrijft de basisbeslissing).
+ * - Rating Neutral + fondsvolume 2 checks op rij gedaald => wisselen.
+ * - Rating Neutral (los van trackingdifference) => minimaal "monitoren": hercheck over 6 maanden. Stond de ETF vorige
+ *   check ook al op Neutral, zijn de sterren >= 3 en is het fondsvolume niet gedaald => behouden (Neutral is dan prima).
+ * - Portefeuille-waarschuwing (los van de individuele beslissing per ETF): 2 of meer ETF's staan in dezelfde
+ *   jaarcheck-run op Neutral => algemene waarschuwing bij de samenvatting. Bij 1 ETF op Neutral: geen melding.
+ * - Kosten (TER) moeten in alle gevallen onder de 0,5% blijven. Boven 0,5% (tot en met 0,55%) mag alleen
+ *   bij 4 of 5 MS-sterren én rating minimaal Bronze. 0,55% is ECHT de max — daarboven altijd wisselen,
+ *   ongeacht sterren of rating.
+ * - Kosten (TER) gestegen t.o.v. vorig jaar => signaal "Let op, de kosten (TER) zijn gestegen." (geen wisselreden op zich).
+ * - Kosten (TER) 2 jaar op rij gestegen => wisselen, TENZIJ sterren >= 3 én rating minimaal Bronze (dan blijft
+ *   het bij een signaal, geen automatische wisseling).
+ * - De inlegverdeling/weging wordt NOOIT aangepast op basis van deze check — puur behouden/monitoren/wisselen per ETF.
+ */
+
+const ONDERPERFORMANCE_DREMPEL = 1.5; // % — positieve trackingdifference boven deze drempel telt als "onder benchmark"
+const MINIMALE_FONDSOMVANG = 500; // miljoen euro — 1e keer eronder = monitoren (hercheck 6 mnd), 2e jaar op rij eronder = wisselen
+const MINIMALE_FONDSOMVANG_HARD = 250; // miljoen euro — harde ondergrens, altijd direct wisselen, geen uitzonderingen
+const MAX_TER_STANDAARD = 0.5; // % — kosten moeten in alle gevallen hieronder blijven, tenzij hoge kwaliteit (zie MAX_TER_ABSOLUUT)
+const MAX_TER_ABSOLUUT = 0.55; // % — harde bovengrens; ook bij 4-5 sterren + Bronze-of-hoger nooit hoger toegestaan
+
+// Fondsvolume in teksten leesbaar tonen: vanaf 1000 mln als miljard (60000 mln -> €60 miljard).
+function fmtVol(v: number | null | undefined): string {
+  if (v == null || isNaN(v)) return '—';
+  if (v >= 1000) return '€' + (v / 1000).toLocaleString('nl-NL', { maximumFractionDigits: 1 }) + ' miljard';
+  return '€' + v.toLocaleString('nl-NL', { maximumFractionDigits: 1 }) + ' mln';
+}
+
+type OudETF = {
+  id: string;
+  isin?: string;
+  name?: string;
+  weight?: number;
+  sector?: string;
+  region?: string;
+  ter?: number | null;
+  div?: string;
+  msStars?: string;
+  ms?: string;
+  fondsvolume?: number | null;
+  // Alleen aanwezig als de oude JSON zelf een Jaarcheck-export was (chaining, jaar 2+):
+  consecutiveUnderperformanceYears?: number;
+  dalendeSterrenJaren?: number;
+  fondsvolumeOnderMinimumJaren?: number;
+  terGestegenJaren?: number;
+  fondsvolumeGedaaldJaren?: number;
+  sterrenOnder3Jaren?: number;
+  ratingGedaaldJaren?: number;
+  ratingNeutralJaren?: number;
+  sterrenBijStartNeutralStreak?: number | null;
+  neutraalDalendSterrenGewaarschuwd?: boolean;
+  trackingDiff?: number | null;
+  beslissingVorigJaar?: string;
+};
+
+type NieuwETF = {
+  id: string;
+  isin?: string;
+  trackingDiff?: number | null;
+  msStars?: string;
+  ms?: string;
+  ter?: number | null;
+  sector?: string;
+  region?: string;
+  div?: string;
+  fondsvolume?: number | null;
+  verwijderd?: boolean;
+};
+
+type Payload = {
+  vorig: {
+    versie?: string;
+    datum?: string;
+    horizon?: string;
+    inleg?: number;
+    coreWeight?: number | null;
+    etfs: OudETF[];
+  };
+  nieuw: {
+    datum?: string;
+    etfs: NieuwETF[];
+  };
+  // Tussentijdse hercheck (6 maanden na 'monitoren'): ETF's die vorige keer NIET op monitoren stonden,
+  // krijgen er geen jaar bij. Alleen een nieuw signaal (teller was 0) telt als eerste keer.
+  hercheck?: boolean;
+};
+
+function starCount(s?: string): number {
+  return (s || '').length;
+}
+
+function isJaarcheckBron(vorig: Payload['vorig']): boolean {
+  // Detectie: een Jaarcheck-export heeft 'jaarcheck' in de versie-string.
+  // De hoofdtool-export (bootstrap, jaar 1) heeft versie '1.0' en geen trackingDiff-geschiedenis.
+  return !!vorig.versie && vorig.versie.startsWith('jaarcheck');
+}
+
+function ratingRang(ms?: string): number {
+  // Gold/Silver/Bronze zijn allemaal "voldoende" voor de matrix — alleen Neutral en Negative wijken af.
+  const orde: Record<string, number> = { Gold: 3, Silver: 3, Bronze: 3, Neutral: 1, Negative: 0 };
+  return ms ? (orde[ms] ?? 2) : 2; // onbekende/lege rating: neutraal-achtig behandelen, niet automatisch wisselen
+}
+
+function ratingRangVoorRichting(ms?: string): number {
+  const orde: Record<string, number> = { Gold: 4, Silver: 3, Bronze: 2, Neutral: 1, Negative: 0 };
+  return ms && orde[ms] != null ? orde[ms] : -1; // onbekend/leeg = geen vergelijking mogelijk
+}
+function bepaalRichting(oudWaarde: number, nieuwWaarde: number): 'beter' | 'slechter' | 'gelijk' | null {
+  if (oudWaarde < 0 || nieuwWaarde < 0) return null;
+  if (nieuwWaarde > oudWaarde) return 'beter';
+  if (nieuwWaarde < oudWaarde) return 'slechter';
+  return 'gelijk';
+}
+
+function bepaalBeslissing(opts: {
+  trackingDiff: number | null;
+  msNieuw?: string;
+  msOud?: string;
+  msStarsNieuw?: string;
+  msStarsOud?: string;
+  priorConsecutive: number;
+  fondsvolumeNieuw?: number | null;
+  fondsvolumeOud?: number | null;
+  fondsvolumeGedaaldJaren?: number; // aantal checks op rij dat het volume daalde (incl. deze)
+  priorFondsvolumeOnderMinimumJaren?: number;
+  terOud?: number | null;
+  terNieuw?: number | null;
+  priorTerGestegenJaren?: number;
+  priorSterrenOnder3Jaren?: number;
+  priorRatingGedaaldJaren?: number;
+  priorRatingNeutralJaren?: number;
+  priorSterrenBijStartNeutralStreak?: number | null;
+  priorNeutraalDalendSterrenGewaarschuwd?: boolean;
+  geenTick?: boolean; // hercheck voor een ETF die niet op monitoren stond: Neutral-teller niet verhogen
+}): {
+  beslissing: string;
+  toelichting: string;
+  consecutiveUnderperformanceYears: number;
+  onderBenchmark: boolean;
+  fondsvolumeOnderMinimumJaren: number;
+  fondsvolumeIsHoofdreden: boolean;
+  terGestegenJaren: number;
+  terIsHoofdreden: boolean;
+  sterrenOnder3Jaren: number;
+  ratingGedaaldJaren: number;
+  ratingNeutralJaren: number;
+  sterrenBijStartNeutralStreak: number | null;
+  neutraalDalendSterrenGewaarschuwd: boolean;
+  kwaliteitIsHoofdreden: boolean;
+  neutraalTrajectIsHoofdreden: boolean;
+  tdIsHoofdreden: boolean;
+} {
+  const {
+    trackingDiff, msNieuw, msOud, fondsvolumeOud, fondsvolumeGedaaldJaren, msStarsNieuw, msStarsOud, priorConsecutive, fondsvolumeNieuw, priorFondsvolumeOnderMinimumJaren,
+    terOud, terNieuw, priorTerGestegenJaren,
+    priorSterrenOnder3Jaren, priorRatingGedaaldJaren, priorRatingNeutralJaren,
+    priorSterrenBijStartNeutralStreak, priorNeutraalDalendSterrenGewaarschuwd,
+  } = opts;
+  const onderBenchmark = trackingDiff != null && trackingDiff > ONDERPERFORMANCE_DREMPEL;
+  const consecutiveUnderperformanceYears = onderBenchmark ? priorConsecutive + 1 : 0;
+  const sterren = starCount(msStarsNieuw);
+  const ratingVoldoende = ratingRang(msNieuw) >= 3; // Gold/Silver/Bronze — hergebruikt door de checks hieronder
+
+  const fondsvolumeOnderMinimum = fondsvolumeNieuw != null && fondsvolumeNieuw < MINIMALE_FONDSOMVANG;
+  const fondsvolumeOnderMinimumJaren = fondsvolumeOnderMinimum ? (priorFondsvolumeOnderMinimumJaren || 0) + 1 : 0;
+
+  const terGestegen = terOud != null && terNieuw != null && terNieuw > terOud;
+  const terGestegenJaren = terGestegen ? (priorTerGestegenJaren || 0) + 1 : 0;
+
+  // --- Sterren/rating kwaliteit: tracking ---
+  const sterrenOnder3 = sterren > 0 && sterren < 3;
+  const sterrenOnder3Jaren = sterrenOnder3 ? (priorSterrenOnder3Jaren || 0) + 1 : 0;
+
+  const ratingRichting = bepaalRichting(ratingRangVoorRichting(msOud), ratingRangVoorRichting(msNieuw));
+  const ratingGedaaldDitJaar = ratingRichting === 'slechter';
+  const ratingGedaaldJaren = ratingGedaaldDitJaar ? (priorRatingGedaaldJaren || 0) + 1 : 0;
+
+  // --- Rating Neutral + dalende sterren: los traject (handmatige hercheck) ---
+  const isNeutralNu = msNieuw === 'Neutral';
+  const wasNeutralVorigJaar = msOud === 'Neutral';
+  // Bootstrap: bij een oude export zonder dit veld (priorRatingNeutralJaren nog 0/undefined) maar waarbij
+  // vorig jaar de rating al Neutral was, tellen we dat als jaar 1 van de streak — anders zou de teller
+  // altijd op 1 blijven steken en start deze regel nooit, ook al staat het al 2 jaar op Neutral.
+  const priorRatingNeutralJarenEff = (priorRatingNeutralJaren || 0) > 0
+    ? (priorRatingNeutralJaren || 0)
+    : (wasNeutralVorigJaar ? 1 : 0);
+  const ratingNeutralJaren = isNeutralNu ? ((opts.geenTick && priorRatingNeutralJarenEff > 0) ? priorRatingNeutralJarenEff : priorRatingNeutralJarenEff + 1) : 0;
+  let sterrenBijStartNeutralStreak: number | null = priorSterrenBijStartNeutralStreak ?? null;
+  if (isNeutralNu && priorRatingNeutralJarenEff === 0) {
+    sterrenBijStartNeutralStreak = sterren; // nieuwe Neutral-streak: referentiepunt voor de dalende-sterren-check
+  } else if (isNeutralNu && sterrenBijStartNeutralStreak == null) {
+    // Bootstrap: de streak liep kennelijk al, maar er is geen startpunt opgeslagen (oude export) —
+    // gebruik het sterrenaantal van vorig jaar als beste beschikbare referentie.
+    sterrenBijStartNeutralStreak = starCount(msStarsOud);
+  } else if (!isNeutralNu) {
+    sterrenBijStartNeutralStreak = null; // streak doorbroken
+  }
+  let neutraalDalendSterrenGewaarschuwd = !!priorNeutraalDalendSterrenGewaarschuwd;
+  if (!isNeutralNu) {
+    neutraalDalendSterrenGewaarschuwd = false; // traject vervalt zodra rating niet meer Neutral is
+  }
+
+  // Kernregel: Negative = altijd direct wisselen, ongeacht trackrecord.
+  if (msNieuw === 'Negative') {
+    return {
+      beslissing: 'wisselen',
+      toelichting: 'Analyst Rating is Negative — directe wisselgrond, ongeacht trackrecord of aantal jaren.',
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: false,
+      terGestegenJaren,
+      terIsHoofdreden: false,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: false,
+      neutraalTrajectIsHoofdreden: false,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Kernregel: fondsvolume onder de harde ondergrens — altijd direct wisselen, geen uitzonderingen.
+  if (fondsvolumeNieuw != null && fondsvolumeNieuw < MINIMALE_FONDSOMVANG_HARD) {
+    return {
+      beslissing: 'wisselen',
+      toelichting: `Fondsvolume (${fmtVol(fondsvolumeNieuw)}) zit onder de harde ondergrens van €${MINIMALE_FONDSOMVANG_HARD} mln — directe wisselgrond, geen uitzonderingen.`,
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: true,
+      terGestegenJaren,
+      terIsHoofdreden: false,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: false,
+      neutraalTrajectIsHoofdreden: false,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Kernregel: kosten (TER) boven de absolute maximumgrens — geen uitzondering, ongeacht sterren of rating.
+  if (terNieuw != null && terNieuw > MAX_TER_ABSOLUUT) {
+    return {
+      beslissing: 'wisselen',
+      toelichting: `Kosten (TER ${terNieuw.toFixed(2)}%) zitten boven de absolute maximumgrens van ${MAX_TER_ABSOLUUT}% — dit is echt de max, geen uitzondering mogelijk. Wissel.`,
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: false,
+      terGestegenJaren,
+      terIsHoofdreden: true,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: false,
+      neutraalTrajectIsHoofdreden: false,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Kernregel: kosten (TER) boven de standaardgrens van 0,5% — alleen toegestaan bij 4-5 sterren én rating Bronze of hoger.
+  if (terNieuw != null && terNieuw > MAX_TER_STANDAARD && !(sterren >= 4 && ratingVoldoende)) {
+    return {
+      beslissing: 'wisselen',
+      toelichting: `Kosten (TER ${terNieuw.toFixed(2)}%) zitten boven de standaardgrens van ${MAX_TER_STANDAARD}%. Dat mag alleen bij 4 of 5 Morningstar-sterren én minimaal Bronze-rating — dat is hier niet het geval. Wissel.`,
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: false,
+      terGestegenJaren,
+      terIsHoofdreden: true,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: false,
+      neutraalTrajectIsHoofdreden: false,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Kernregel: fondsvolume zit al voor de tweede keer op rij onder de minimale grens — niet hersteld na de waarschuwing.
+  if (fondsvolumeOnderMinimumJaren >= 2) {
+    return {
+      beslissing: 'wisselen',
+      toelichting: `Fondsvolume zit voor het tweede jaar op rij onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln (nu ${fmtVol(fondsvolumeNieuw)}) — vorig jaar al gewaarschuwd, het fonds is niet hersteld. Wissel, ongeacht rating of trackrecord.`,
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: true,
+      terGestegenJaren,
+      terIsHoofdreden: false,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: false,
+      neutraalTrajectIsHoofdreden: false,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Rating Neutral + dalende sterren, STAGE 2: na de eerdere waarschuwing (stage 1) nog steeds Neutral én
+  // de sterren zijn nog steeds niet hersteld t.o.v. het startpunt van dit traject — wissel.
+  if (
+    isNeutralNu &&
+    priorNeutraalDalendSterrenGewaarschuwd &&
+    sterrenBijStartNeutralStreak != null &&
+    sterren <= sterrenBijStartNeutralStreak
+  ) {
+    neutraalDalendSterrenGewaarschuwd = false; // traject afgesloten met een wissel
+    return {
+      beslissing: 'wisselen',
+      toelichting: `Bij de eerdere hercheck was rating al 2 jaar op rij Neutral met dalende sterren. Bij deze hercheck staat de rating nog steeds op Neutral en zijn de sterren nog niet hersteld (${msStarsNieuw || '—'}). Advies: wisselen.`,
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: false,
+      terGestegenJaren,
+      terIsHoofdreden: false,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: false,
+      neutraalTrajectIsHoofdreden: true,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Sterren/rating kwaliteit: sterren <3, 2e jaarcheck op rij in die staat, rating Neutral of Bronze => wisselen.
+  if (sterrenOnder3 && sterrenOnder3Jaren >= 2 && (msNieuw === 'Neutral' || msNieuw === 'Bronze')) {
+    return {
+      beslissing: 'wisselen',
+      toelichting: `Sterren staan al 2 jaarchecks op rij op ${msStarsNieuw} (onder 3 sterren) met rating ${msNieuw} — geen vertrouwen meer in het trackrecord. Wissel.`,
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: false,
+      terGestegenJaren,
+      terIsHoofdreden: false,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: true,
+      neutraalTrajectIsHoofdreden: false,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Kernregel: kosten (TER) zijn twee jaar op rij gestegen — reden om te wisselen, tenzij de ETF sterk genoeg is
+  // (sterren >= 3 én rating Bronze of hoger) om de stijging te rechtvaardigen.
+  const terHogeKwaliteit = sterren >= 3 && ratingVoldoende;
+  if (terGestegenJaren >= 2 && !terHogeKwaliteit) {
+    return {
+      beslissing: 'wisselen',
+      toelichting: `Kosten (TER) zijn twee jaar op rij gestegen (${terOud!.toFixed(2)}% → ${terNieuw!.toFixed(2)}%), en sterren/rating zijn niet sterk genoeg om dit te compenseren. Wissel.`,
+      consecutiveUnderperformanceYears,
+      onderBenchmark,
+      fondsvolumeOnderMinimumJaren,
+      fondsvolumeIsHoofdreden: false,
+      terGestegenJaren,
+      terIsHoofdreden: true,
+      sterrenOnder3Jaren,
+      ratingGedaaldJaren,
+      ratingNeutralJaren,
+      sterrenBijStartNeutralStreak,
+      neutraalDalendSterrenGewaarschuwd,
+      kwaliteitIsHoofdreden: false,
+      neutraalTrajectIsHoofdreden: false,
+      tdIsHoofdreden: false,
+    };
+  }
+
+  // Vanaf hier: "basis"-beslissing op trackingdifference/rating, zoals voorheen.
+  let basis: { beslissing: string; toelichting: string };
+  // Wordt true als de "geen TD"-tekst hierboven de uiteindelijke toelichting blijft (dan hoeft de melding
+  // niet nogmaals als los signaal getoond te worden) — en weer false zodra een latere regel (fondsvolume-
+  // uplift, Neutraal-traject) de basis overschrijft, zodat de TD-melding dan als apart signaal verschijnt.
+  let tdIsHoofdreden = false;
+
+  if (!onderBenchmark) {
+    if (trackingDiff != null) {
+      basis = {
+        beslissing: 'behouden',
+        toelichting: 'Alles in orde, geen actie.',
+      };
+    } else {
+      // Geen TD bekend: geen aparte escalatie naar "monitoren" — gewoon beoordelen op wat wél bekend is
+      // (sterren/rating). Die checks lopen hierboven al onafhankelijk van TD.
+      basis = {
+        beslissing: 'behouden',
+        toelichting: 'Geen trackingdifference bekend/ingevuld, maak zelf de berekening.',
+      };
+      tdIsHoofdreden = true;
+    }
+  } else {
+    // Onder benchmark (trackingdifference > 1.5%)
+    const ratingNeutral = msNieuw === 'Neutral';
+
+    if (consecutiveUnderperformanceYears === 1) {
+      if (ratingVoldoende) {
+        basis = {
+          beslissing: 'behouden',
+          toelichting: `Eerste jaar onder benchmark (trackingdifference ${trackingDiff!.toFixed(2)}%), rating ${msNieuw} nog voldoende. Noteer en volg volgend jaar — een slecht jaar is normaal.`,
+        };
+      } else if (ratingNeutral) {
+        basis = {
+          beslissing: 'monitoren',
+          toelichting: `Eerste jaar onder benchmark (${trackingDiff!.toFixed(2)}%) + Neutral rating: vroeg signaal. Verhoog monitoring, hercheck over 6 maanden. Nog niet wisselen.`,
+        };
+      } else {
+        // Geen Analyst Rating beschikbaar (komt vaker voor bij kleinere ETF's, niet elke ETF wordt door Morningstar-analisten gevolgd)
+        basis = {
+          beslissing: 'monitoren',
+          toelichting: `Eerste jaar onder benchmark (${trackingDiff!.toFixed(2)}%). Geen Analyst Rating beschikbaar voor deze ETF op Morningstar, komt vaker voor bij kleinere ETF's. Beoordeel dit jaar zelf op basis van de sterren en trackrecord.`,
+        };
+      }
+    } else {
+      // consecutiveUnderperformanceYears >= 2: twee (of meer) jaar op rij onder benchmark
+      if (ratingVoldoende) {
+        basis = {
+          beslissing: 'behouden',
+          toelichting: `Twee jaar op rij onder benchmark, maar rating ${msNieuw} blijft solide — Morningstar-analisten beoordelen de structurele kwaliteit. Vertrouw op die check.`,
+        };
+      } else if (ratingNeutral) {
+        basis = {
+          beslissing: 'wisselen',
+          toelichting: `Twee jaar op rij onder benchmark + Neutral rating: combinatie van aanhoudende underperformance en Neutral betekent geen vertrouwen meer. Wissel.`,
+        };
+      } else {
+        basis = {
+          beslissing: 'monitoren',
+          toelichting: `Twee jaar op rij onder benchmark (${trackingDiff!.toFixed(2)}%). Geen Analyst Rating beschikbaar voor deze ETF op Morningstar, komt vaker voor bij kleinere ETF's. Beoordeel dit jaar zelf op basis van de sterren en trackrecord.`,
+        };
+      }
+    }
+  }
+
+  // Fondsvolume 1e keer onder de minimale grens: nooit een reden om automatisch te wisselen, maar wél
+  // minimaal "monitoren" — als de basisbeslissing nog "behouden" was, wordt die opgetild naar "monitoren".
+  let fondsvolumeIsHoofdreden = false;
+  if (fondsvolumeOnderMinimumJaren === 1 && basis.beslissing === 'behouden') {
+    const ratingNote = ratingRang(msNieuw) >= 3 ? `, rating ${msNieuw || '(onbekend)'} nog voldoende` : '';
+    basis = {
+      beslissing: 'monitoren',
+      toelichting: `Fondsvolume is onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln gezakt (nu ${fmtVol(fondsvolumeNieuw)})${ratingNote}. Hercheck over 6 maanden — blijft het fonds klein bij de volgende jaarcheck, dan wisselen.`,
+    };
+    fondsvolumeIsHoofdreden = true;
+    tdIsHoofdreden = false;
+  }
+
+  // Rating Neutral + dalende sterren, STAGE 1: rating staat nu 2 jaar op rij op Neutral en de sterren zijn
+  // over die hele periode gedaald — nog geen wissel, maar wel een verplichte handmatige hercheck over 6 maanden.
+  let neutraalTrajectIsHoofdreden = false;
+  if (
+    isNeutralNu &&
+    ratingNeutralJaren === 2 &&
+    !priorNeutraalDalendSterrenGewaarschuwd &&
+    sterrenBijStartNeutralStreak != null &&
+    sterren < sterrenBijStartNeutralStreak &&
+    basis.beslissing !== 'wisselen'
+  ) {
+    basis = {
+      beslissing: 'monitoren',
+      toelichting: `Rating staat nu 2 jaar op rij op Neutral en de sterren zijn in die periode gedaald (${msStarsNieuw || '—'}). Hercheck over 6 maanden nodig (handmatig, los van de jaarlijkse cyclus) — blijft dit zo, dan wisselen.`,
+    };
+    neutraalDalendSterrenGewaarschuwd = true;
+    neutraalTrajectIsHoofdreden = true;
+    tdIsHoofdreden = false;
+  }
+
+  // Rating Neutral => minimaal "monitoren" (hercheck over 6 maanden), ook zonder onderperformance.
+  // Uitzondering: stond vorige check al op Neutral, sterren >= 3 en fondsvolume niet gedaald => Neutral is prima, behouden.
+  // Alleen als er nog niets zwaarders uitkwam (wisselen/monitoren blijven zoals ze zijn).
+  // Neutral + fondsvolume 2 checks op rij gedaald => wisselen (tenzij al wisselen).
+  if (isNeutralNu && (fondsvolumeGedaaldJaren || 0) >= 2 && basis.beslissing !== 'wisselen') {
+    basis = {
+      beslissing: 'wisselen',
+      toelichting: `Rating staat op Neutral en het fondsvolume is nu ${fondsvolumeGedaaldJaren} checks op rij gedaald (${fmtVol(fondsvolumeOud)} → ${fmtVol(fondsvolumeNieuw)}). Neutral is prima zolang het fonds stabiel blijft, maar dit herstelt niet. Wissel.`,
+    };
+    tdIsHoofdreden = false;
+  }
+  const neutraalStabiel = wasNeutralVorigJaar && sterren >= 3 &&
+    !(fondsvolumeOud != null && fondsvolumeNieuw != null && fondsvolumeNieuw < fondsvolumeOud);
+  if (isNeutralNu && basis.beslissing === 'behouden' && !neutraalStabiel) {
+    basis = {
+      beslissing: 'monitoren',
+      toelichting: `Rating staat op Neutral${msOud && msOud !== 'Neutral' ? ` (vorige check: ${msOud})` : ''}. Nog niet wisselen, wel in de gaten houden: hercheck over 6 maanden.`,
+    };
+    tdIsHoofdreden = false;
+  }
+
+  return {
+    ...basis,
+    consecutiveUnderperformanceYears,
+    onderBenchmark,
+    fondsvolumeOnderMinimumJaren,
+    fondsvolumeIsHoofdreden,
+    terGestegenJaren,
+    terIsHoofdreden: false,
+    sterrenOnder3Jaren,
+    ratingGedaaldJaren,
+    ratingNeutralJaren,
+    sterrenBijStartNeutralStreak,
+    neutraalDalendSterrenGewaarschuwd,
+    kwaliteitIsHoofdreden: false,
+    neutraalTrajectIsHoofdreden,
+    tdIsHoofdreden,
+  };
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = (await request.json()) as Payload;
+    const vorig = body.vorig;
+    const nieuw = body.nieuw;
+    const bronIsJaarcheck = isJaarcheckBron(vorig);
+
+    const vorigMap = new Map<string, OudETF>();
+    vorig.etfs.forEach(e => {
+      const key = (e.isin || e.name || e.id || '').toUpperCase();
+      if (key) vorigMap.set(key, e);
+    });
+
+    const nieuwMap = new Map<string, NieuwETF>();
+    nieuw.etfs.forEach(e => {
+      const key = (e.isin || e.id || '').toUpperCase();
+      if (key) nieuwMap.set(key, e);
+    });
+
+    const resultaten: any[] = [];
+    let behouden = 0, monitoren = 0, wisselen = 0, nieuwCount = 0, verwijderd = 0;
+
+    // 1) Alle ETF's die in de oude situatie zaten
+    for (const oud of vorig.etfs) {
+      const key = (oud.isin || oud.name || oud.id || '').toUpperCase();
+      const n = key ? nieuwMap.get(key) : undefined;
+
+      if (!n || n.verwijderd) {
+        verwijderd++;
+        resultaten.push({
+          id: oud.id,
+          isin: oud.isin || '',
+          name: oud.name || '',
+          beslissing: 'verwijderd',
+          toelichting: 'Niet meer aanwezig in de nieuwe situatie — uit de portefeuille gehaald sinds de vorige check.',
+          sterrenSignaal: null,
+          fondsvolumeSignaal: null,
+          kostenSignaal: null,
+          sector: { oud: oud.sector || '', nieuw: null, gewijzigd: false },
+          region: { oud: oud.region || '', nieuw: null, gewijzigd: false },
+          ter: { oud: oud.ter ?? null, nieuw: null, verschil: null, gewijzigd: false },
+          msStars: { oud: oud.msStars || '', nieuw: null, gewijzigd: false },
+          ms: { oud: oud.ms || '', nieuw: null, gewijzigd: false },
+          fondsvolume: { oud: oud.fondsvolume ?? null, nieuw: null, gewijzigd: false, gedaald: false, onderMinimum: false },
+          trackingDiff: null,
+          onderBenchmark: false,
+          consecutiveUnderperformanceYears: 0,
+          dalendeSterrenJaren: 0,
+          fondsvolumeOnderMinimumJaren: 0,
+          terGestegenJaren: 0,
+          sterrenDalend2JaarOpRij: false,
+          sterrenOnder3Jaren: 0,
+          ratingGedaaldJaren: 0,
+          ratingNeutralJaren: 0,
+          sterrenBijStartNeutralStreak: null,
+          neutraalDalendSterrenGewaarschuwd: false,
+          kwaliteitSignaal: null,
+          ratingSignaal: null,
+          tdSignaal: null,
+          tdIsHoofdreden: false,
+        });
+        continue;
+      }
+
+      // Hercheck: een ETF die niet op monitoren stond telt deze check niet als extra jaar.
+      // Tellers gaan 1 omlaag voordat de gewone regels +1 doen, dus een bestaand signaal blijft staan
+      // en alleen een volledig nieuw signaal (teller 0) wordt een eerste keer.
+      const geenTick = !!body.hercheck && bronIsJaarcheck && oud.beslissingVorigJaar !== 'monitoren';
+      const eff = (p: number) => (geenTick && p > 0 ? p - 1 : p);
+      const priorConsecutive = bronIsJaarcheck ? eff(oud.consecutiveUnderperformanceYears || 0) : 0;
+      const priorSterrenDalend = bronIsJaarcheck ? eff(oud.dalendeSterrenJaren || 0) : 0;
+      const priorFondsvolumeOnderMinimumJaren = bronIsJaarcheck ? eff(oud.fondsvolumeOnderMinimumJaren || 0) : 0;
+      const priorTerGestegenJaren = bronIsJaarcheck ? eff(oud.terGestegenJaren || 0) : 0;
+      const priorSterrenOnder3Jaren = bronIsJaarcheck ? eff(oud.sterrenOnder3Jaren || 0) : 0;
+      const priorRatingGedaaldJaren = bronIsJaarcheck ? eff(oud.ratingGedaaldJaren || 0) : 0;
+      const priorRatingNeutralJaren = bronIsJaarcheck ? (oud.ratingNeutralJaren || 0) : 0;
+      const priorSterrenBijStartNeutralStreak = bronIsJaarcheck ? (oud.sterrenBijStartNeutralStreak ?? null) : null;
+      const priorNeutraalDalendSterrenGewaarschuwd = bronIsJaarcheck ? !!oud.neutraalDalendSterrenGewaarschuwd : false;
+
+      const fondsvolumeOud = oud.fondsvolume ?? null;
+      const fondsvolumeNieuw = n.fondsvolume ?? null;
+      const priorFondsvolumeGedaaldJaren = bronIsJaarcheck ? eff(oud.fondsvolumeGedaaldJaren || 0) : 0;
+      const fondsvolumeGedaaldJaren = (fondsvolumeOud != null && fondsvolumeNieuw != null && fondsvolumeNieuw < fondsvolumeOud) ? priorFondsvolumeGedaaldJaren + 1 : 0;
+
+      const terOud = oud.ter ?? null;
+      const terNieuw = n.ter ?? terOud; // als niet opnieuw ingevuld: aanname TER ongewijzigd
+
+      const trackingDiff = n.trackingDiff != null && !isNaN(n.trackingDiff) ? n.trackingDiff : null;
+      const {
+        beslissing, toelichting, consecutiveUnderperformanceYears, onderBenchmark,
+        fondsvolumeOnderMinimumJaren, fondsvolumeIsHoofdreden, terGestegenJaren, terIsHoofdreden,
+        sterrenOnder3Jaren, ratingGedaaldJaren, ratingNeutralJaren, sterrenBijStartNeutralStreak,
+        neutraalDalendSterrenGewaarschuwd, kwaliteitIsHoofdreden, neutraalTrajectIsHoofdreden, tdIsHoofdreden,
+      } = bepaalBeslissing({
+        trackingDiff,
+        msNieuw: n.ms,
+        msOud: oud.ms,
+        msStarsNieuw: n.msStars,
+        msStarsOud: oud.msStars,
+        priorConsecutive,
+        fondsvolumeNieuw,
+        fondsvolumeOud,
+        fondsvolumeGedaaldJaren,
+        priorFondsvolumeOnderMinimumJaren,
+        terOud,
+        terNieuw,
+        priorTerGestegenJaren,
+        priorSterrenOnder3Jaren,
+        priorRatingGedaaldJaren,
+        priorRatingNeutralJaren,
+        priorSterrenBijStartNeutralStreak,
+        priorNeutraalDalendSterrenGewaarschuwd,
+        geenTick,
+      });
+
+      const sterrenGedaald = starCount(n.msStars) > 0 && starCount(oud.msStars) > 0 && starCount(n.msStars) < starCount(oud.msStars);
+      const dalendeSterrenJaren = sterrenGedaald ? priorSterrenDalend + 1 : 0;
+      const sterrenDalend2JaarOpRij = dalendeSterrenJaren >= 2;
+      // Sterren-signaal: altijd tonen zodra de sterren dit jaar gedaald zijn, ook bij een eenmalige daling —
+      // met een zwaardere tekst zodra het 2 jaar op rij gebeurt.
+      const sterrenSignaal = sterrenDalend2JaarOpRij
+        ? `Morningstar-sterren dalen twee jaar op rij (${oud.msStars || '—'} → ${n.msStars || '—'}). Extra aandachtspunt naast de hoofdbeslissing.`
+        : sterrenGedaald
+          ? `Sterren zijn gedaald (${oud.msStars || '—'} → ${n.msStars || '—'}).`
+          : null;
+
+      // Rating-signaal: zelfde opzet als het sterren-signaal — toon het zodra de rating dit jaar gedaald is.
+      // Bij 2 jaar op rij gedaald wordt dit al afgehandeld door kwaliteitSignaal/het Neutraal-traject
+      // (uitgebreidere, specifiekere tekst), dus hier alleen de eenmalige/dit-jaar-daling.
+      const ratingGedaaldDitJaar = ratingRang(n.ms) > 0 && ratingRang(oud.ms) > 0 && ratingRang(n.ms) < ratingRang(oud.ms);
+      const ratingSignaal = (ratingGedaaldDitJaar && ratingGedaaldJaren < 2)
+        ? `Rating is gedaald (${oud.ms || '—'} → ${n.ms || '—'}).`
+        : null;
+
+      // TD-signaal: altijd tonen zodra er geen trackingdifference bekend is, tenzij dat al letterlijk de
+      // toelichting van de beslissing zelf is (dan staat het al boven de ETF, geen dubbele melding nodig).
+      const tdSignaal = (trackingDiff == null && !tdIsHoofdreden)
+        ? 'Geen trackingdifference bekend/ingevuld, maak zelf de berekening.'
+        : null;
+
+      const fondsvolumeOnderMinimum = fondsvolumeNieuw != null && fondsvolumeNieuw < MINIMALE_FONDSOMVANG;
+      const fondsvolumeGedaald = fondsvolumeOud != null && fondsvolumeNieuw != null && fondsvolumeNieuw < fondsvolumeOud;
+      // Signaal-tekst: alleen tonen als het al niet de hoofdreden van de beslissing zelf is
+      // (anders staat het al, uitgebreider, in de toelichting hierboven).
+      const fondsvolumeSignaal = (fondsvolumeOnderMinimumJaren === 1 && !fondsvolumeIsHoofdreden)
+        ? `Fondsvolume zit ook onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln (nu ${fmtVol(fondsvolumeNieuw)}). Hercheck over 6 maanden — blijft het zo, dan volgend jaar wisselen.`
+        : (fondsvolumeGedaald && !fondsvolumeOnderMinimum)
+          ? `Fondsvolume loopt terug (${fmtVol(fondsvolumeOud)} → ${fmtVol(fondsvolumeNieuw)}). Nog boven de minimale grens van €${MINIMALE_FONDSOMVANG} mln, maar wel een aandachtspunt om te volgen.`
+          : null;
+
+      const terGestegen = terOud != null && terNieuw != null && terNieuw > terOud;
+      const terSterkGenoeg = starCount(n.msStars) >= 3 && ratingRang(n.ms) >= 3;
+      // Signaal-tekst: alleen tonen als het al niet de hoofdreden van de beslissing zelf is.
+      const kostenSignaal = terIsHoofdreden
+        ? null
+        : (terGestegenJaren >= 2 && terSterkGenoeg)
+          ? `Kosten (TER) zijn twee jaar op rij gestegen (${terOud!.toFixed(2)}% → ${terNieuw!.toFixed(2)}%), maar sterren en rating zijn sterk genoeg om dit te compenseren. Blijf dit volgen.`
+          : terGestegen
+            ? `Let op, de kosten (TER) zijn gestegen (${terOud!.toFixed(2)}% → ${terNieuw!.toFixed(2)}%).`
+            : null;
+
+      // Sterren/rating kwaliteit-signaal: alleen tonen als het geen hoofdreden van de beslissing zelf is
+      // (dan staat het al, uitgebreider, in de toelichting).
+      const kwaliteitSignaal = kwaliteitIsHoofdreden || neutraalTrajectIsHoofdreden
+        ? null
+        : (sterrenOnder3Jaren >= 2 && (n.ms === 'Silver' || n.ms === 'Gold'))
+          ? `Sterren staan 2 jaarchecks op rij op ${n.msStars || '—'} (onder 3 sterren), maar rating ${n.ms} houdt nog voldoende vertrouwen. Volgend jaar herchecken.`
+          : (ratingGedaaldJaren >= 2 && (n.ms === 'Bronze' || n.ms === 'Neutral'))
+            ? `Rating is 2 jaarchecks op rij gedaald en staat nu op ${n.ms}. Aandachtspunt, volgend jaar herchecken.`
+            : null;
+
+      if (beslissing === 'behouden') behouden++;
+      else if (beslissing === 'monitoren') monitoren++;
+      else if (beslissing === 'wisselen') wisselen++;
+
+      const sectorNieuw = n.sector || oud.sector || '';
+      const regionNieuw = n.region || oud.region || '';
+      const msStarsNieuw = n.msStars || '';
+      const msNieuw = n.ms || '';
+
+      resultaten.push({
+        id: oud.id,
+        isin: oud.isin || '',
+        name: oud.name || '',
+        beslissing,
+        toelichting,
+        sterrenSignaal,
+        ratingSignaal,
+        fondsvolumeSignaal,
+        kostenSignaal,
+        kwaliteitSignaal,
+        tdSignaal,
+        tdIsHoofdreden,
+        sector: { oud: oud.sector || '', nieuw: sectorNieuw, gewijzigd: (oud.sector || '') !== sectorNieuw },
+        region: { oud: oud.region || '', nieuw: regionNieuw, gewijzigd: (oud.region || '') !== regionNieuw },
+        ter: {
+          oud: terOud,
+          nieuw: terNieuw,
+          verschil: terOud != null && terNieuw != null ? +(terNieuw - terOud).toFixed(3) : null,
+          gewijzigd: terOud != null && terNieuw != null && Math.abs(terNieuw - terOud) > 0.0001,
+        },
+        msStars: { oud: oud.msStars || '', nieuw: msStarsNieuw, gewijzigd: (oud.msStars || '') !== msStarsNieuw, richting: bepaalRichting(starCount(oud.msStars), starCount(msStarsNieuw)) },
+        ms: { oud: oud.ms || '', nieuw: msNieuw, gewijzigd: (oud.ms || '') !== msNieuw, richting: bepaalRichting(ratingRangVoorRichting(oud.ms), ratingRangVoorRichting(msNieuw)) },
+        fondsvolume: {
+          oud: fondsvolumeOud,
+          nieuw: fondsvolumeNieuw,
+          gewijzigd: fondsvolumeOud != null && fondsvolumeNieuw != null && fondsvolumeOud !== fondsvolumeNieuw,
+          gedaald: fondsvolumeGedaald,
+          onderMinimum: fondsvolumeOnderMinimum,
+        },
+        trackingDiff,
+        onderBenchmark,
+        consecutiveUnderperformanceYears,
+        dalendeSterrenJaren,
+        fondsvolumeOnderMinimumJaren,
+        fondsvolumeGedaaldJaren,
+        terGestegenJaren,
+        sterrenDalend2JaarOpRij,
+        sterrenOnder3Jaren,
+        ratingGedaaldJaren,
+        ratingNeutralJaren,
+        sterrenBijStartNeutralStreak,
+        neutraalDalendSterrenGewaarschuwd,
+      });
+    }
+
+    // 2) ETF's die nieuw zijn toegevoegd (zaten niet in de oude situatie)
+    for (const n of nieuw.etfs) {
+      const key = (n.isin || n.id || '').toUpperCase();
+      if (n.verwijderd) continue;
+      if (key && vorigMap.has(key)) continue; // al hierboven verwerkt
+      nieuwCount++;
+
+      const fondsvolumeNieuw = n.fondsvolume ?? null;
+      const terNieuw = n.ter ?? null;
+      const trackingDiff = n.trackingDiff != null && !isNaN(n.trackingDiff) ? n.trackingDiff : null;
+      const {
+        beslissing, toelichting, consecutiveUnderperformanceYears, onderBenchmark, fondsvolumeOnderMinimumJaren, terGestegenJaren,
+        sterrenOnder3Jaren, ratingNeutralJaren, sterrenBijStartNeutralStreak, neutraalDalendSterrenGewaarschuwd, tdIsHoofdreden,
+      } = bepaalBeslissing({
+        trackingDiff,
+        msNieuw: n.ms,
+        msStarsNieuw: n.msStars,
+        priorConsecutive: 0,
+        fondsvolumeNieuw,
+        priorFondsvolumeOnderMinimumJaren: 0,
+        terOud: null,
+        terNieuw,
+        priorTerGestegenJaren: 0,
+        priorSterrenOnder3Jaren: 0,
+        priorRatingGedaaldJaren: 0,
+        priorRatingNeutralJaren: 0,
+        priorSterrenBijStartNeutralStreak: null,
+        priorNeutraalDalendSterrenGewaarschuwd: false,
+      });
+
+      if (beslissing === 'behouden') behouden++;
+      else if (beslissing === 'monitoren') monitoren++;
+      else if (beslissing === 'wisselen') wisselen++;
+
+      const tdSignaalNieuw = (trackingDiff == null && !tdIsHoofdreden)
+        ? 'Geen trackingdifference bekend/ingevuld, maak zelf de berekening.'
+        : null;
+
+      resultaten.push({
+        id: n.id,
+        isin: n.isin || '',
+        name: n.isin || n.id,
+        beslissing,
+        toelichting: `Nieuw toegevoegd sinds de vorige check — geen historie. ${toelichting}`,
+        sterrenSignaal: null,
+        ratingSignaal: null,
+        fondsvolumeSignaal: null,
+        kostenSignaal: null,
+        kwaliteitSignaal: null,
+        tdSignaal: tdSignaalNieuw,
+        tdIsHoofdreden,
+        sector: { oud: null, nieuw: n.sector || '', gewijzigd: false },
+        region: { oud: null, nieuw: n.region || '', gewijzigd: false },
+        ter: { oud: null, nieuw: terNieuw, verschil: null, gewijzigd: false },
+        msStars: { oud: null, nieuw: n.msStars || '', gewijzigd: false },
+        ms: { oud: null, nieuw: n.ms || '', gewijzigd: false },
+        fondsvolume: { oud: null, nieuw: fondsvolumeNieuw, gewijzigd: false, gedaald: false, onderMinimum: fondsvolumeNieuw != null && fondsvolumeNieuw < MINIMALE_FONDSOMVANG },
+        trackingDiff,
+        onderBenchmark,
+        consecutiveUnderperformanceYears,
+        dalendeSterrenJaren: 0,
+        fondsvolumeOnderMinimumJaren,
+        terGestegenJaren,
+        sterrenDalend2JaarOpRij: false,
+        sterrenOnder3Jaren,
+        ratingGedaaldJaren: 0,
+        ratingNeutralJaren,
+        sterrenBijStartNeutralStreak,
+        neutraalDalendSterrenGewaarschuwd,
+      });
+    }
+
+    // Portefeuille-waarschuwing: los van de individuele beslissing per ETF. 2 of meer ETF's op Neutral
+    // in dezelfde jaarcheck-run => algemene waarschuwing. Bij 1 ETF op Neutral: geen melding.
+    const neutraalCount = resultaten.filter(r => r.beslissing !== 'verwijderd' && r.ms && r.ms.nieuw === 'Neutral').length;
+    // De melding staat bij de betreffende ETF's zelf (neutraalSignaal), niet meer als blok voor de hele portefeuille.
+    const portefeuilleWaarschuwing: string | null = null;
+    if (neutraalCount >= 2) {
+      for (const r of resultaten as any[]) {
+        if (r.beslissing !== 'verwijderd' && r.ms && r.ms.nieuw === 'Neutral') {
+          r.neutraalSignaal = `Let op: ${neutraalCount} ETF's in je portefeuille staan op Neutral, dus ook deze. Bij 2 of meer is dat een aandachtspunt voor de kwaliteit van je spreiding. Check deze ETF over 6 maanden nog een keer.`;
+        }
+      }
+    }
+
+    // Core-type check op de portefeuille na deze check (verwijderde ETF's tellen niet mee).
+    const kernWaarschuwingen = kernMeldingen(
+      resultaten
+        .filter(r => r.beslissing !== 'verwijderd')
+        .map(r => ({ isin: r.isin, name: r.name }))
+    );
+
+    return NextResponse.json(
+      {
+        datum: nieuw.datum || new Date().toISOString().slice(0, 10),
+        horizon: vorig.horizon || '',
+        inleg: vorig.inleg || 0,
+        coreWeight: vorig.coreWeight ?? null,
+        resultaten,
+        portefeuilleWaarschuwing,
+        kernWaarschuwingen,
+        samenvatting: {
+          totaal: resultaten.length,
+          behouden,
+          monitoren,
+          wisselen,
+          nieuw: nieuwCount,
+          verwijderd,
+        },
+      },
+      { headers: { 'Access-Control-Allow-Origin': '*' } }
+    );
+  } catch (e) {
+    return NextResponse.json(
+      { error: 'Ongeldige aanvraag' },
+      { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+    );
+  }
+}

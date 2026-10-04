@@ -119,9 +119,11 @@ tr:hover td{background:rgba(107,45,132,0.08)}
 .flags-title{font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--fuchsia);margin-bottom:14px}
 .flag-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(46,50,85,0.5);font-size:13px;line-height:1.55}
 .flag-row:last-child{border-bottom:none}
-.flag-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px}
-.flag-red .flag-icon{background:rgba(226,27,112,0.2);color:var(--fuchsia)}
-.flag-warn .flag-icon{background:rgba(255,107,53,0.2);color:var(--oranje)}
+.flag-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;flex-shrink:0;margin-top:1px}
+.flag-red .flag-icon{background:var(--fuchsia);color:#fff;box-shadow:0 0 0 4px rgba(226,27,112,0.22)}
+.flag-row{padding-left:10px;padding-right:10px}
+.flag-red{background:rgba(226,27,112,0.07);border-radius:8px}
+.flag-warn .flag-icon{background:var(--oranje);color:#fff;box-shadow:0 0 0 4px rgba(255,107,53,0.2)}
 
 /* PROFIEL */
 .profiel-card{background:linear-gradient(135deg,rgba(62,220,177,0.08) 0%,rgba(33,38,69,1) 60%);border:1.5px solid rgba(62,220,177,0.3);border-radius:14px;padding:22px;margin-bottom:20px}
@@ -720,7 +722,7 @@ function renderFlags(flags){
   const card=document.getElementById('flags-card'),list=document.getElementById('flags-list');
   card.style.display='block';
   const vaste = '<div class="flag-row flag-info"><div class="flag-icon">💡</div><span>Check altijd of de ETF fractioneel aan te kopen is bij jouw broker.</span></div>';
-  list.innerHTML=vaste+flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">${f.t==='r'?'✕':'!'}</div><span>${f.msg}</span></div>`).join('');
+  list.innerHTML=vaste+flags.map(f=>`<div class="flag-row ${f.t==='r'?'flag-red':'flag-warn'}"><div class="flag-icon">⚑</div><span>${f.msg}</span></div>`).join('');
 }
 
 async function downloadPDF(){

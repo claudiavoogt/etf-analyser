@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { kernMeldingen } from '../../../lib/kern';
 
 interface ETF {
   id: string;
@@ -99,12 +100,12 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
     }
   });
 
-  // Startregel: max. 1 ETF op Neutral, de rest minimaal Bronze.
+  // Startregel: max. 2 ETF's op Neutral, de rest minimaal Bronze.
   // Negative wordt al per ETF rood gevlagd, Neutral-per-ETF blijft oranje; hier alleen de portefeuillecheck.
   const neutrals = etfs.filter(e => e.ms === 'Neutral');
-  if (neutrals.length > 1) {
+  if (neutrals.length > 2) {
     const namen = neutrals.map(e => e.name || 'ETF zonder naam').join(', ');
-    f.push({ t: 'r', msg: `${neutrals.length} ETF's op Neutral (${namen}). Bij aanvang mag er maximaal 1 ETF op Neutral staan, de rest moet minimaal Bronze zijn.` });
+    f.push({ t: 'r', msg: `${neutrals.length} ETF's op Neutral (${namen}). Bij aanvang mogen er maximaal 2 ETF's op Neutral staan, de rest moet minimaal Bronze zijn.` });
   }
 
   // Sectorspreiding: per sector max. 1 aanvullende ETF (rood vanaf 2).
@@ -145,6 +146,9 @@ function getFlags(etfs: ETF[], tw: number, horizon: string, inleg: number): Flag
     else if (uP >= 100) f.push({ t: 'r', msg: `LET OP!! Kies voor herbeleggen ETF's om het compoundingeffect te maximaliseren.` });
     else if (uitkerendETFs.length >= 1) uitkerendETFs.forEach(e => f.push({ t: 'w', msg: `${e.name}: Let op! Dividend wordt uitgekeerd ipv herbelegd. Dit geeft verlies van compounding effect.` }));
   }
+
+  // Core-type: dubbele core (2 wereld of 2 S&P 500 = rood) en overlap wereld + S&P 500 (oranje).
+  kernMeldingen(etfs).forEach(k => f.push(k));
 
   return f;
 }

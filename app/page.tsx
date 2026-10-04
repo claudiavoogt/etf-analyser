@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 function Analyzer() {
   const params = useSearchParams();
   const t = params.get('t') || '';
-  const src = t ? `/etf-analyzer-claudia.html?t=${encodeURIComponent(t)}` : '/etf-analyzer-claudia.html';
+  const src = t ? `/etf-portefeuille.html?t=${encodeURIComponent(t)}` : '/etf-portefeuille.html';
 
   return (
     <iframe
