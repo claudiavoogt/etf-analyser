@@ -913,12 +913,19 @@ export async function POST(request: NextRequest) {
       });
     });
     const nieuweEtfMeldingenLijst = nieuweEtfMeldingen(portefeuille, nieuweIds);
+    const naamVan = new Map(portefeuille.map(p => [p.id, p.name]));
+    const nieuweEtfMeldingenMetNaam = nieuweEtfMeldingenLijst.map(m => ({ ...m, namen: m.ids.map(i => naamVan.get(i) || i) }));
+    // Meldingen horen bij de ETF zelf: per resultaat meegeven.
+    resultaten.forEach((r: any) => {
+      const eigen = nieuweEtfMeldingenLijst.filter(m => m.ids.includes(r.id)).map(m => ({ t: m.t, msg: m.msg }));
+      if (eigen.length) r.nieuweEtfMeldingen = eigen;
+    });
     // Een nieuwe ETF met een melding mag niet "Alles in orde" zeggen: de toelichting verwijst naar de melding.
     resultaten.forEach(r => {
       if (!nieuweIds.has(r.id) || r.beslissing !== 'behouden') return;
       if (!nieuweEtfMeldingenLijst.some(m => m.ids.includes(r.id))) return;
       if (typeof r.toelichting === 'string' && r.toelichting.includes('Alles in orde, geen actie.')) {
-        r.toelichting = r.toelichting.replace('Alles in orde, geen actie.', 'Rating, sterren, kosten en fondsvolume zijn in orde, maar lees de melding bovenaan over je nieuwe ETF.');
+        r.toelichting = r.toelichting.replace('Alles in orde, geen actie.', 'Rating, sterren, kosten en fondsvolume zijn in orde, maar lees de melding hieronder over je nieuwe ETF.');
       }
     });
 
@@ -931,7 +938,7 @@ export async function POST(request: NextRequest) {
         resultaten,
         portefeuilleWaarschuwing,
         kernWaarschuwingen,
-        nieuweEtfMeldingen: nieuweEtfMeldingenLijst,
+        nieuweEtfMeldingen: nieuweEtfMeldingenMetNaam,
         samenvatting: {
           totaal: resultaten.length,
           behouden,

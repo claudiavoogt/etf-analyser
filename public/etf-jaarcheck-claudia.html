@@ -185,7 +185,6 @@ select option{background:#1A1F36}
 
     <div id="portefeuille-waarschuwing" style="display:none;margin-bottom:16px;padding:12px 16px;border-radius:8px;background:rgba(255,107,53,0.14);border:1.5px solid var(--oranje);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:var(--oranje);line-height:1.6"></div>
 
-    <div id="nieuw-etf-meldingen" style="display:none"></div>
 
     <div class="metrics">
       <div class="metric"><div class="metric-label">Totaal</div><div class="metric-val" id="m-totaal">0</div></div>
@@ -519,7 +518,6 @@ function nieuwRowHtml(id, n){
         <label>Rendement 5 jaar <span>(% p.j.)</span></label>
         <input type="number" id="${id}-r5" placeholder="bijv. 12.5" step="0.1">
       </div>
-      <div class="nieuw-uitleg">Voor een nieuwe ETF doen we dezelfde instapcheck als in de Analyse: rendement, sectorspreiding, uitkerend dividend en Neutral. Zo kom je niet makkelijker binnen dan bij de start.</div>
     </div>
     <input type="hidden" id="${id}-sector" value="">
     <input type="hidden" id="${id}-region" value="">
@@ -687,6 +685,7 @@ function resultRowHtml(r){
     ${diffs.length ? `<div class="result-diffs">${diffs.join('')}</div>` : ''}
     <div class="result-toelichting ${toelichtingCls}">${r.toelichting}</div>
     ${(r.beslissing === 'monitoren' && window.__hercheckTekst) ? `<div class="result-herc">${window.__hercheckTekst(window.__checkDatum)}</div>` : ''}
+    ${(r.nieuweEtfMeldingen || []).map(m => `<div class="nm-rij ${m.t === 'r' ? 'nm-rood' : 'nm-oranje'}"><span class="nm-icoon">⚑</span><span>${m.msg}</span></div>`).join('')}
     ${r.tdSignaal ? `<div class="result-signaal"><span class="signaal-icon">⚠</span>${r.tdSignaal}</div>` : ''}
     ${r.sterrenSignaal ? `<div class="result-signaal"><span class="signaal-icon">⚠</span>${r.sterrenSignaal}</div>` : ''}
     ${r.ratingSignaal ? `<div class="result-signaal"><span class="signaal-icon">⚠</span>${r.ratingSignaal}</div>` : ''}
@@ -714,13 +713,6 @@ function renderResultaten(data){
   } else {
     waarschuwingBox.style.display = 'none';
   }
-
-  const nm = document.getElementById('nieuw-etf-meldingen');
-  const mel = data.nieuweEtfMeldingen || [];
-  if(mel.length){
-    nm.innerHTML = '<div class="nm-kaart"><div class="nm-titel">Let op bij je nieuwe ETF</div>' + mel.map(m => `<div class="nm-rij ${m.t === 'r' ? 'nm-rood' : 'nm-oranje'}"><span class="nm-icoon">⚑</span><span>${m.msg}</span></div>`).join('') + '</div>';
-    nm.style.display = 'block';
-  } else { nm.innerHTML = ''; nm.style.display = 'none'; }
 
   // Zelfde volgorde als de ingevoerde ETF's, geen sortering op besluit
   document.getElementById('resultaten-list').innerHTML = data.resultaten.map(resultRowHtml).join('');
@@ -851,6 +843,7 @@ async function downloadPDF(){
         ${diffsHtmlPdf}
         <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:${r.tdIsHoofdreden ? '#c07840' : '#333'};margin-top:6px;line-height:1.5;font-style:normal">${r.toelichting}</div>
         ${(r.beslissing === 'monitoren' && window.__hercheckTekst) ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#333;margin-top:4px\">${window.__hercheckTekst(window.__checkDatum).replace(/<b>/g,'<b style=\"color:#c07840\">')}</div>` : ''}
+        ${(r.nieuweEtfMeldingen || []).map(m => `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:${m.t === 'r' ? '#c0003a' : '#c07840'};margin-top:4px;line-height:1.5\">&#9873; ${m.msg}</div>`).join('')}
         ${r.tdSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.tdSignaal}</div>` : ''}
         ${r.sterrenSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.sterrenSignaal}</div>` : ''}
         ${r.ratingSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.ratingSignaal}</div>` : ''}
@@ -864,10 +857,6 @@ async function downloadPDF(){
 
     if(data.portefeuilleWaarschuwing){
       tabelHtml = `<div style="border:1.5px solid #c07840;background:#fdf3ea;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:10px;font-weight:700;color:#c07840;line-height:1.5">⚠ ${data.portefeuilleWaarschuwing}</div>` + tabelHtml;
-    }
-    if((data.nieuweEtfMeldingen || []).length){
-      const nmPdf = data.nieuweEtfMeldingen.map(m => `<div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;line-height:1.5;color:${m.t === 'r' ? '#c0003a' : '#c07840'};margin-top:4px">&#9873; ${m.msg}</div>`).join('');
-      tabelHtml = `<div style="border:1.5px solid ${data.nieuweEtfMeldingen.some(m => m.t === 'r') ? '#c0003a' : '#c07840'};background:#fdf3ea;border-radius:8px;padding:10px 14px;margin-bottom:14px"><div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#6B2D84">Let op bij je nieuwe ETF</div>${nmPdf}</div>` + tabelHtml;
     }
 
     let disclaimerHtml = `<div style="border:1px solid #d0c4e0;border-radius:8px;padding:12px 16px;margin-top:6px">

@@ -921,7 +921,7 @@ function renderOverzicht(){
 
   // Aandachtspunten uit de laatste check
   h += '<div class="kaart"><h2>Opmerkingen bij de check van ' + fmtDatum(laatste.datum) + '</h2>';
-  (laatste.nieuweEtfMeldingen || []).forEach(m => { h += '<div class="aandacht ' + (m.t === 'r' ? 'wisselen' : 'monitoren') + '"><div><b>Nieuwe ETF</b><small>' + (m.t === 'r' ? '⚑ ' : '⚑ ') + esc(m.msg) + '</small></div></div>'; });
+  (laatste.nieuweEtfMeldingen || []).forEach(m => { h += '<div class="aandacht ' + (m.t === 'r' ? 'wisselen' : 'monitoren') + '"><div><b>' + esc((m.namen && m.namen.length) ? m.namen.join(', ') : 'Nieuwe ETF') + '</b> · Nieuwe ETF<small>⚑ ' + esc(m.msg) + '</small></div></div>'; });
   const gemist = (() => { const lijst = []; let vj = (dossier.portefeuille && dossier.portefeuille.datum) ? parseInt(String(dossier.portefeuille.datum).slice(0,4), 10) : null; if(isNaN(vj)) vj = null;
     if(dossier.demo || vj == null) return lijst;
     checks.forEach(c => { if(!c.hercheck){ for(let y = vj + 1; y < c.jaar; y++) lijst.push(y); vj = c.jaar; } });
