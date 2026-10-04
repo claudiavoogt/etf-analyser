@@ -99,7 +99,7 @@ main{flex:1;min-height:0;position:relative}
 .aandacht.monitoren{border-left-color:var(--oranje)}
 .aandacht.ok{border-left-color:var(--mint)}
 .aandacht b{font-family:'Montserrat',sans-serif;font-weight:700}
-.aandacht small{display:block;color:var(--text-muted);font-style:italic;margin-top:2px}
+.aandacht small{display:block;color:var(--text-muted);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:600;font-style:normal;line-height:1.6;margin-top:3px}
 .tag{font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;letter-spacing:.8px;text-transform:uppercase;padding:4px 11px;border-radius:20px;display:inline-block;white-space:nowrap}
 .tag-behouden{background:rgba(62,220,177,.15);color:var(--mint)}
 .tag-monitoren{background:rgba(255,107,53,.18);color:var(--oranje)}
@@ -885,9 +885,7 @@ function renderOverzicht(){
   </div>`;
 
   // Aandachtspunten uit de laatste check
-  h += '<div class="kaart"><h2>Aandachtspunten · check van ' + fmtDatum(laatste.datum) + '</h2>';
-  if(laatste.portefeuilleWaarschuwing) h += '<div class="aandacht monitoren"><div>⚠ ' + esc(laatste.portefeuilleWaarschuwing) + '</div></div>';
-  (laatste.kernWaarschuwingen || []).forEach(k => { h += '<div class="aandacht ' + (k.t === 'r' ? 'wisselen' : 'monitoren') + '"><div>' + (k.t === 'r' ? '⛔ ' : '⚠ ') + esc(k.msg) + '</div></div>'; });
+  h += '<div class="kaart"><h2>Opmerkingen bij de check van ' + fmtDatum(laatste.datum) + '</h2>';
   const gemist = (() => { const lijst = []; let vj = (dossier.portefeuille && dossier.portefeuille.datum) ? parseInt(String(dossier.portefeuille.datum).slice(0,4), 10) : null; if(isNaN(vj)) vj = null;
     if(dossier.demo || vj == null) return lijst;
     checks.forEach(c => { if(!c.hercheck){ for(let y = vj + 1; y < c.jaar; y++) lijst.push(y); vj = c.jaar; } });
@@ -907,9 +905,9 @@ function renderOverzicht(){
     const reeksTxt = reeks > 1 ? ' · al ' + reeks + ' jaar op rij' : '';
     h += `<div class="aandacht ${r.beslissing}"><div><b>${esc(r.name)}</b> · ${label}${reeksTxt}<small>${esc(r.toelichting)}</small></div></div>`;
   });
-  if(!actief.length && !laatste.portefeuilleWaarschuwing && !(laatste.kernWaarschuwingen || []).length) h += '<div class="aandacht ok"><div><b>Alles in orde.</b> Geen enkele ETF vraagt dit jaar om actie.</div></div>';
+  if(!actief.length && !gemist.length) h += '<div class="aandacht ok"><div><b>Alles in orde.</b> Geen enkele ETF vraagt dit jaar om actie.</div></div>';
   const signalen = laatste.rijen.filter(r => r.beslissing === 'behouden' && r.signalen && r.signalen.length);
-  signalen.forEach(r => { h += `<div class="aandacht ok"><div><b>${esc(r.name)}</b> · Behouden, met een aandachtspunt<small>${esc(r.signalen[0])}</small></div></div>`; });
+  signalen.forEach(r => { h += `<div class="aandacht ok"><div><b>${esc(r.name)}</b> · Behouden, met een opmerking<small>${esc(r.signalen[0])}</small></div></div>`; });
   h += '</div>';
 
   // Tijdlijn per ETF
