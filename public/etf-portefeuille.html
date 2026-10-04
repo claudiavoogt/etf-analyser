@@ -28,7 +28,9 @@ body{font-family:'Lora',serif;background:var(--navy);color:var(--wit);font-size:
 .dossier-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .dossier-status{font-family:'Montserrat',sans-serif;font-size:11px;color:var(--text-muted);margin-right:6px}
 .dossier-status b{color:var(--wit)}
-.dossier-status .dot{color:var(--oranje)}
+.dossier-status .dot{display:inline-block;background:#FFD23F;color:#1A1F36;font-weight:800;padding:3px 10px;border-radius:20px;margin-left:6px;animation:dotpuls 1.4s ease-in-out infinite}
+@keyframes dotpuls{0%,100%{box-shadow:0 0 0 0 rgba(255,210,63,.65);transform:scale(1)}50%{box-shadow:0 0 0 7px rgba(255,210,63,0);transform:scale(1.06)}}
+@media (prefers-reduced-motion:reduce){.dossier-status .dot{animation:none}}
 .tabs{max-width:1240px;margin:10px auto 0;padding:0 28px;display:flex;gap:4px;overflow-x:auto}
 .tab{font-family:'Montserrat',sans-serif;font-weight:700;font-size:13px;letter-spacing:.3px;color:#aab0cc;background:transparent;border:none;border-bottom:3px solid transparent;padding:10px 18px 11px;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
 .tab:hover{color:var(--wit)}
