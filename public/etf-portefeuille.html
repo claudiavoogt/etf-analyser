@@ -109,6 +109,8 @@ main{flex:1;min-height:0;position:relative}
 .tag{font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;letter-spacing:.8px;text-transform:uppercase;padding:4px 11px;border-radius:20px;display:inline-block;white-space:nowrap}
 .tag-behouden{background:rgba(62,220,177,.15);color:var(--mint)}
 .tag-monitoren{background:rgba(255,107,53,.18);color:var(--oranje)}
+.mx-herc{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);margin:6px 0 2px}
+.mx-herc b{color:var(--oranje);font-weight:800}
 .tag-wisselen{background:rgba(226,27,112,.18);color:var(--fuchsia)}
 .tag-verwijderd{background:rgba(255,255,255,.07);color:var(--text-muted)}
 .tag-geen{background:transparent;border:1px dashed rgba(255,107,53,.6);color:var(--oranje)}
@@ -878,7 +880,7 @@ function renderOverzicht(){
   let volgTekst;
   if(modusNu === 'hercheck') volgTekst = 'Hercheck nu aan de beurt';
   else if(modusNu === 'januari') volgTekst = 'Nu aan de beurt';
-  else volgTekst = (hc ? '<span class="vc-regel">Hercheck <b>' + maandJaar(hc.datum) + '</b></span>' : '') + '<span class="vc-regel">Jaarcheck <b>januari ' + volgendeJanuariJaar() + '</b></span>';
+  else volgTekst = '<span class="vc-regel">Jaarcheck <b>januari ' + volgendeJanuariJaar() + '</b></span>';
 
   let h = lint;
   if(dossier.demo) h += '<div class="demo-lint">Dit is voorbeelddata. Alle ETF\'s, ratings en cijfers zijn verzonnen om te laten zien hoe het overzicht eruit komt te zien. <button class="btn" style="margin-left:10px" onclick="location.reload()">Sluit voorbeeld</button></div>';
@@ -945,6 +947,8 @@ function renderOverzicht(){
   h += '<div class="kaart"><h2>Tijdlijn per ETF</h2><div class="mx-wrap"><table class="mx"><thead><tr><th>ETF</th>';
   kolommen.forEach(k => { h += '<th>' + esc(k.label) + (k.datum ? '<small>' + fmtDatum(k.datum) + '</small>' : '') + '</th>'; });
   h += '</tr></thead><tbody>';
+  let laatsteCheckKi = -1; kolommen.forEach((k, ki) => { if(k.type === 'check') laatsteCheckKi = ki; });
+  const hcNu = hercheckInfo();
   universum.forEach(u => {
     h += `<tr><td class="naam"><div class="etf-naam">${esc(u.name)}</div><span class="etf-isin">${esc(u.isin || '')}</span></td>`;
     let vorige = null, gezien = false;
@@ -976,8 +980,9 @@ function renderOverzicht(){
       if(rij.trackingDiff != null) delen.push(`<span class="${rij.trackingDiff > 1.5 ? 'alert' : ''}">TD ${rij.trackingDiff > 0 ? '+' : ''}${Number(rij.trackingDiff).toFixed(1)}%</span>`);
       const l2 = delen.length ? `<div class="mx-line">${delen.join(' · ')}</div>` : '';
       const l3 = rij.fondsvolume != null ? `<div class="mx-line"><span class="${volT}${rij.fondsvolume < 500 ? ' alert' : ''}">Fondsvolume ${fmtVolume(rij.fondsvolume)}</span></div>` : '';
+      const hercRegel = (rij.beslissing === 'monitoren' && ki === laatsteCheckKi) ? `<div class="mx-herc">${hcNu ? 'Hercheck <b>' + esc(maandJaar(hcNu.datum)) + '</b>' : 'Bij Jaarcheck <b>januari ' + volgendeJanuariJaar() + '</b>'}</div>` : '';
       const tip = rij.start ? '' : esc([rij.toelichting].concat(rij.signalen || []).filter(Boolean).join(' | '));
-      h += `<td class="mx-cell" title="${tip}">${badge}${l1}${l2}${l3}</td>`;
+      h += `<td class="mx-cell" title="${tip}">${badge}${hercRegel}${l1}${l2}${l3}</td>`;
       vorige = rij;
     });
     h += '</tr>';
