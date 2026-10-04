@@ -58,6 +58,7 @@ main{flex:1;min-height:0;position:relative}
 .jan-melding.compact .jan-ico{width:28px;height:28px;font-size:14px}
 .jan-melding.compact .jan-titel{margin-bottom:0;font-size:14px}
 .jan-titel .jan-datum{color:var(--mint)}
+.jan-titel .jan-herc{color:var(--oranje)}
 .jan-melding.compact .jan-body{display:none}
 .opslaan-lint{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:rgba(255,45,120,.12);border:1px solid rgba(255,45,120,.5);border-left:6px solid var(--fuchsia);border-radius:12px;padding:14px 18px;margin-bottom:18px;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:#ffd0e2}
 .uitleg-blok{flex-shrink:0;padding:26px 28px 14px}
@@ -313,6 +314,13 @@ function touch(){
 function huidigeUitgangssituatie(){
   // De Jaarcheck gaat verder vanaf de laatste check. Is die er niet, dan vanaf de portefeuille uit de Analyse.
   if(!dossier) return null;
+  // Staat de laatste check van vandaag, dan draait een nieuwe run opnieuw tegen de situatie ervoor. Anders vergelijk je de check met zichzelf (Neutral naar Neutral = behouden) en spreekt de uitkomst het Overzicht tegen.
+  const vandaag = new Date().toISOString().slice(0,10);
+  const cs = dossier.checks;
+  if(!dossier.demo && cs.length && cs[cs.length - 1].datum === vandaag){
+    const vorige = cs.length > 1 ? cs[cs.length - 2].state : dossier.portefeuille;
+    if(vorige && Array.isArray(vorige.etfs) && vorige.etfs.length) return vorige;
+  }
   if(dossier.checks.length) return dossier.checks[dossier.checks.length - 1].state;
   const p = dossier.portefeuille;
   return (p && Array.isArray(p.etfs) && p.etfs.length) ? p : null;
@@ -514,7 +522,7 @@ function updateJanMelding(){
     ico = '✅'; titel = 'Het is tijd voor je Jaarcheck';
     body = 'Je doet de Jaarcheck <b>één keer per jaar, in januari</b>. Vul hieronder de nieuwe gegevens in per ETF.';
   } else {
-    ico = '⏳'; titel = 'Nog niet nodig: de Jaarcheck doe je in <span class="jan-datum">januari ' + volgendeJanuariJaar() + '</span>';
+    ico = '⏳'; titel = 'Nog niet nodig: de Jaarcheck doe je in <span class="jan-datum">januari ' + volgendeJanuariJaar() + '</span>' + (h ? ' · hercheck in <span class="jan-herc">' + maandJaar(h.datum) + '</span>' : '');
     body = 'Je doet de Jaarcheck <b>één keer per jaar, in januari</b>.';
     if(h) body += ' Een ETF staat op "Check na 6 maanden": daarvoor doe je een <b>hercheck in ' + maandJaar(h.datum) + '</b> (' + h.namen.map(esc).join(', ') + ').';
     else if(!dossier || !dossier.checks.length) body += ' Heb je net je analyse gedaan? Dan hoef je hier nu nog niets te doen. Sla je dossier op in het tabblad Analyse en bewaar het bestand goed.';
@@ -594,6 +602,12 @@ function laadJaarcheckFrame(key){
       // Upload-stap verbergen: het dossier levert de vorige situatie.
       verbergIframeKop(f);
       w.__hercheck = (jaarcheckModus() === 'hercheck');
+      w.__hercheckTekst = datum => {
+        const d = new Date(String(datum) + 'T12:00:00'); if(isNaN(d)) return '';
+        d.setMonth(d.getMonth() + 6);
+        const vj = verwachtJanuariJaar(datum);
+        return (vj && d >= new Date(vj, 0, 1)) ? 'Bij Jaarcheck <b>januari ' + vj + '</b>' : 'Hercheck <b>' + esc(maandJaar(d)) + '</b>';
+      };
       const up = w.document.getElementById('upload-card');
       if(up) up.style.display = 'none';
       // Meeluisteren wanneer een analyse klaar is.

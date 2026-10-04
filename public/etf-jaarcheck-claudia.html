@@ -97,6 +97,8 @@ select option{background:#1A1F36}
 .btn-morningstar:hover{background:rgba(62,220,177,0.1);border-color:var(--mint)}
 .result-isin{font-size:11px;color:var(--mint);font-weight:600;margin-left:8px}
 .result-toelichting{font-family:'Montserrat',sans-serif;font-size:13px;color:var(--text-muted);line-height:1.6;margin-top:6px;font-weight:600}
+.result-herc{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);margin-top:6px}
+.result-herc b{color:var(--oranje);font-weight:800}
 .result-toelichting.behouden{color:var(--mint)}
 .result-toelichting.monitoren{color:var(--oranje)}
 .result-toelichting.wisselen{color:var(--fuchsia)}
@@ -641,6 +643,7 @@ function resultRowHtml(r){
     </div>
     ${diffs.length ? `<div class="result-diffs">${diffs.join('')}</div>` : ''}
     <div class="result-toelichting ${toelichtingCls}">${r.toelichting}</div>
+    ${(r.beslissing === 'monitoren' && window.__hercheckTekst) ? `<div class="result-herc">${window.__hercheckTekst(window.__checkDatum)}</div>` : ''}
     ${r.tdSignaal ? `<div class="result-signaal"><span class="signaal-icon">⚠</span>${r.tdSignaal}</div>` : ''}
     ${r.sterrenSignaal ? `<div class="result-signaal"><span class="signaal-icon">⚠</span>${r.sterrenSignaal}</div>` : ''}
     ${r.ratingSignaal ? `<div class="result-signaal"><span class="signaal-icon">⚠</span>${r.ratingSignaal}</div>` : ''}
@@ -652,6 +655,7 @@ function resultRowHtml(r){
 }
 
 function renderResultaten(data){
+  window.__checkDatum = data.datum || new Date().toISOString().slice(0,10);
   document.getElementById('output').style.display = 'block';
   const s = data.samenvatting;
   document.getElementById('m-totaal').textContent = s.totaal;
@@ -796,6 +800,7 @@ async function downloadPDF(){
         </div>
         ${diffsHtmlPdf}
         <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:${r.tdIsHoofdreden ? '#c07840' : '#333'};margin-top:6px;line-height:1.5;font-style:normal">${r.toelichting}</div>
+        ${(r.beslissing === 'monitoren' && window.__hercheckTekst) ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#333;margin-top:4px\">${window.__hercheckTekst(window.__checkDatum).replace(/<b>/g,'<b style=\"color:#c07840\">')}</div>` : ''}
         ${r.tdSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.tdSignaal}</div>` : ''}
         ${r.sterrenSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.sterrenSignaal}</div>` : ''}
         ${r.ratingSignaal ? `<div style=\"font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#c07840;margin-top:4px;line-height:1.5;font-style:normal\">⚠ ${r.ratingSignaal}</div>` : ''}
