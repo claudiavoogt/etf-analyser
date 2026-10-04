@@ -57,6 +57,7 @@ main{flex:1;min-height:0;position:relative}
 .jan-melding.compact .jan-melding-in{padding:9px 16px;align-items:center;gap:12px;box-shadow:none}
 .jan-melding.compact .jan-ico{width:28px;height:28px;font-size:14px}
 .jan-melding.compact .jan-titel{margin-bottom:0;font-size:14px}
+.jan-titel .jan-datum{color:var(--mint)}
 .jan-melding.compact .jan-body{display:none}
 .opslaan-lint{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:rgba(255,45,120,.12);border:1px solid rgba(255,45,120,.5);border-left:6px solid var(--fuchsia);border-radius:12px;padding:14px 18px;margin-bottom:18px;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:#ffd0e2}
 .uitleg-blok{flex-shrink:0;padding:26px 28px 14px}
@@ -504,7 +505,7 @@ function updateJanMelding(){
     ico = '✅'; titel = 'Het is tijd voor je Jaarcheck';
     body = 'Je doet de Jaarcheck <b>één keer per jaar, in januari</b>. Vul hieronder de nieuwe gegevens in per ETF.';
   } else {
-    ico = '⏳'; titel = 'Nog niet nodig: de Jaarcheck doe je in januari ' + volgendeJanuariJaar();
+    ico = '⏳'; titel = 'Nog niet nodig: de Jaarcheck doe je in <span class="jan-datum">januari ' + volgendeJanuariJaar() + '</span>';
     body = 'Je doet de Jaarcheck <b>één keer per jaar, in januari</b>.';
     if(h) body += ' Een ETF staat op "Check na 6 maanden": daarvoor doe je een <b>hercheck in ' + maandJaar(h.datum) + '</b> (' + h.namen.map(esc).join(', ') + ').';
     else if(!dossier || !dossier.checks.length) body += ' Heb je net je analyse gedaan? Dan hoef je hier nu nog niets te doen. Sla je dossier op in het tabblad Analyse en bewaar het bestand goed.';
