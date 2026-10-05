@@ -201,7 +201,7 @@ select option{background:#1A1F36}
 
     <div class="disclaimer">
       <div class="disclaimer-title">Belangrijk</div>
-      <div class="disclaimer-text">Deze Jaarcheck is gebaseerd op door jou ingevoerde gegevens, waaronder trackingdifference (zelf opgezocht via trackingdifferences.com), Morningstar Rating/sterren en fondsvolume (beide zelf opgezocht via morningstar.nl). De inlegverdeling van je portefeuille wordt door deze check nooit aangepast — uitsluitend behouden/monitoren/wisselen per ETF. Dit is een hulpmiddel, geen beleggingsadvies. Controleer alle gegevens altijd zelf via officiële bronnen. Juistheid en volledigheid worden niet gegarandeerd.</div>
+      <div class="disclaimer-text">Deze Jaarcheck is gebaseerd op door jou ingevoerde gegevens, waaronder trackingdifference (zelf opgezocht via trackingdifferences.com), Morningstar Rating/sterren en fondsomvang (beide zelf opgezocht via morningstar.nl). De inlegverdeling van je portefeuille wordt door deze check nooit aangepast — uitsluitend behouden/monitoren/wisselen per ETF. Dit is een hulpmiddel, geen beleggingsadvies. Controleer alle gegevens altijd zelf via officiële bronnen. Juistheid en volledigheid worden niet gegarandeerd.</div>
     </div>
 
     <div class="actions">
@@ -248,7 +248,7 @@ zone.addEventListener('drop', e => {
   if (f) handleFile(f);
 });
 
-// Fondsvolume leesbaar tonen: vanaf 1000 mln als miljard (60000 mln -> €60 miljard).
+// Fondsomvang leesbaar tonen: vanaf 1000 mln als miljard (60000 mln -> €60 miljard).
 function fmtVolume(v){
   if(v==null || isNaN(v)) return '—';
   if(v >= 1000) return '€' + (v/1000).toLocaleString('nl-NL', {maximumFractionDigits:1}) + ' miljard';
@@ -268,8 +268,8 @@ function handleFile(file){
       }
       oudeData = data;
       oudeBron = (data.versie && String(data.versie).startsWith('jaarcheck')) ? 'jaarcheck' : 'analyzer';
-      // Bootstrap-export (hoofdtool) gebruikt het veld 'aum' voor fondsvolume, de jaarcheck zelf 'fondsvolume'.
-      // Bij een bootstrap-import hier normaliseren zodat 'Vorig jaar' en de vergelijking het fondsvolume tonen.
+      // Bootstrap-export (hoofdtool) gebruikt het veld 'aum' voor fondsvolume, de jaarcheck zelf 'fondsomvang'.
+      // Bij een bootstrap-import hier normaliseren zodat 'Vorig jaar' en de vergelijking het fondsomvang tonen.
       if(oudeBron === 'analyzer'){
         oudeData.etfs = oudeData.etfs.map(etf => (
           etf.fondsvolume == null && etf.aum != null
@@ -415,7 +415,7 @@ function bestaandRowHtml(etf){
         <label for="${id}-verwijderd">Niet meer in portefeuille</label>
       </div>
     </div>
-    <div style="font-size:11px;margin-bottom:10px" class="vorig-jaar">Vorig jaar: ${etf.sector||'—'} · ${etf.region||'—'} · TER ${etf.ter!=null?etf.ter.toFixed(2)+'%':'—'} · MS ${etf.msStars||'—'} ${etf.ms||''} · Fondsvolume ${fmtVolume(etf.fondsvolume)}</div>
+    <div style="font-size:11px;margin-bottom:10px" class="vorig-jaar">Vorig jaar: ${etf.sector||'—'} · ${etf.region||'—'} · Kosten (TER) ${etf.ter!=null?etf.ter.toFixed(2)+'%':'—'} · MS Sterren ${etf.msStars||'—'} · MS Rating ${etf.ms||'—'} · Fondsomvang ${fmtVolume(etf.fondsvolume)}</div>
     <div class="row5 fv" id="${id}-fields">
       <div>
         <label>Trackingdifference dit jaar <span>(%)</span></label>
@@ -430,23 +430,23 @@ function bestaandRowHtml(etf){
         <select id="${id}-stars">${starsOptions(etf.msStars||'')}</select>
       </div>
       <div>
-        <label>Analyst Rating <span>(nu)</span></label>
+        <label>MS Rating <span>(nu)</span></label>
         <div style="display:flex;gap:6px">
           <select id="${id}-ms" style="flex:1;min-width:0">${ratingOptions(etf.ms||'')}</select>
           <button class="btn btn-sm btn-morningstar" type="button" onclick="openMorningstar('${(etf.isin||'').replace(/'/g,"&#39;")}')" title="Zoek dit ETF op Morningstar">↗ MS</button>
         </div>
       </div>
       <div>
-        <label>Kosten % (TER) <span>indien gewijzigd</span></label>
+        <label>Kosten (TER) % <span>indien gewijzigd</span></label>
         <div style="display:flex;gap:6px">
           <input type="number" id="${id}-ter" value="${etf.ter!=null?etf.ter:''}" step="0.01" style="flex:1">
           <button class="btn btn-sm" type="button" onclick="herzoekISIN('${id}')" title="Opnieuw opzoeken via ISIN">🔍</button>
         </div>
       </div>
       <div>
-        <label>Fondsvolume nu</label>
+        <label>Fondsomvang nu</label>
         <div style="display:flex;gap:6px">
-          <input type="number" id="${id}-fondsvolume" placeholder="bijv. 850" step="1" min="0" style="flex:1">
+          <input type="number" id="${id}-fondsomvang" placeholder="bijv. 850" step="1" min="0" style="flex:1">
           <select id="${id}-fondsvolume-unit" style="width:98px;flex-shrink:0"><option value="mln" selected>miljoen</option><option value="mrd">miljard</option></select>
         </div>
       </div>
@@ -481,7 +481,7 @@ function nieuwRowHtml(id, n){
         <div id="${id}-sug" class="sug-box" style="display:none"></div>
       </div>
       <div>
-        <label>Kosten % (TER)</label>
+        <label>Kosten (TER) %</label>
         <input type="number" id="${id}-ter" placeholder="0.20" step="0.01">
       </div>
     </div>
@@ -499,16 +499,16 @@ function nieuwRowHtml(id, n){
         <select id="${id}-stars">${starsOptions('')}</select>
       </div>
       <div>
-        <label>Analyst Rating</label>
+        <label>MS Rating</label>
         <div style="display:flex;gap:6px">
           <select id="${id}-ms" style="flex:1;min-width:0">${ratingOptions('')}</select>
           <button class="btn btn-sm btn-morningstar" type="button" onclick="openMorningstarFromField('${id}')" title="Zoek dit ETF op Morningstar">↗ MS</button>
         </div>
       </div>
       <div>
-        <label>Fondsvolume</label>
+        <label>Fondsomvang</label>
         <div style="display:flex;gap:6px">
-          <input type="number" id="${id}-fondsvolume" placeholder="bijv. 850" step="1" min="0" style="flex:1">
+          <input type="number" id="${id}-fondsomvang" placeholder="bijv. 850" step="1" min="0" style="flex:1">
           <select id="${id}-fondsvolume-unit" style="width:98px;flex-shrink:0"><option value="mln" selected>miljoen</option><option value="mrd">miljard</option></select>
         </div>
       </div>
@@ -545,7 +545,7 @@ function verwijderNieuwRow(id){
 /* ---------- Analyse uitvoeren ---------- */
 
 function fondsvolumeInMln(id){
-  const v = parseFloat(document.getElementById(id+'-fondsvolume').value);
+  const v = parseFloat(document.getElementById(id+'-fondsomvang').value);
   if(isNaN(v) || v === 0) return null;
   const unit = document.getElementById(id+'-fondsvolume-unit').value;
   return unit === 'mrd' ? v * 1000 : v;
@@ -653,7 +653,7 @@ function resultRowHtml(r){
   const cls = r.beslissing;
   const diffs = [];
   if(r.ter && r.ter.oud != null && r.ter.nieuw != null){
-    diffs.push(`<span>TER: <b class="${r.ter.gewijzigd?'diff-changed':''}">${fmtTer(r.ter.oud)} → ${fmtTer(r.ter.nieuw)}</b></span>`);
+    diffs.push(`<span>Kosten (TER): <b class="${r.ter.gewijzigd?'diff-changed':''}">${fmtTer(r.ter.oud)} → ${fmtTer(r.ter.nieuw)}</b></span>`);
   }
   if(r.sector && (r.sector.oud || r.sector.nieuw)){
     diffs.push(`<span>Sector: <b class="${r.sector.gewijzigd?'diff-changed':''}">${r.sector.oud||'—'} → ${r.sector.nieuw||'—'}</b></span>`);
@@ -663,17 +663,17 @@ function resultRowHtml(r){
   }
   const richtingClass = (r) => r === 'beter' ? 'diff-beter' : r === 'slechter' ? 'diff-slechter' : '';
   if(r.msStars && (r.msStars.oud || r.msStars.nieuw)){
-    diffs.push(`<span>Sterren: <b class="${richtingClass(r.msStars.richting)}">${r.msStars.oud||'—'} → ${r.msStars.nieuw||'—'}</b></span>`);
+    diffs.push(`<span>MS Sterren: <b class="${richtingClass(r.msStars.richting)}">${r.msStars.oud||'—'} → ${r.msStars.nieuw||'—'}</b></span>`);
   }
   if(r.ms && (r.ms.oud || r.ms.nieuw)){
-    diffs.push(`<span>Rating: <b class="${richtingClass(r.ms.richting)}">${r.ms.oud||'—'} → ${r.ms.nieuw||'—'}</b></span>`);
+    diffs.push(`<span>MS Rating: <b class="${richtingClass(r.ms.richting)}">${r.ms.oud||'—'} → ${r.ms.nieuw||'—'}</b></span>`);
   }
   if(r.trackingDiff != null){
     diffs.push(`<span>Trackingdifference: <b>${r.trackingDiff.toFixed(2)}%</b></span>`);
   }
   if(r.fondsvolume && (r.fondsvolume.oud != null || r.fondsvolume.nieuw != null)){
     const fvClass = r.fondsvolume.onderMinimum ? 'diff-onder-minimum' : (r.fondsvolume.gedaald ? 'diff-slechter' : '');
-    diffs.push(`<span>Fondsvolume: <b class="${fvClass}">${fmtVolume(r.fondsvolume.oud)} → ${fmtVolume(r.fondsvolume.nieuw)}</b></span>`);
+    diffs.push(`<span>Fondsomvang: <b class="${fvClass}">${fmtVolume(r.fondsvolume.oud)} → ${fmtVolume(r.fondsvolume.nieuw)}</b></span>`);
   }
   const toelichtingCls = r.tdIsHoofdreden ? 'monitoren' : cls;
   return `
@@ -832,7 +832,7 @@ async function downloadPDF(){
       if(r.trackingDiff != null) diffPartsPdf.push(`Trackingdifference: ${r.trackingDiff.toFixed(2)}%`);
       if(r.fondsvolume && (r.fondsvolume.oud != null || r.fondsvolume.nieuw != null)){
         const fvKleurPdf = r.fondsvolume.onderMinimum || r.fondsvolume.gedaald ? '#c0003a' : '#1A1F36';
-        diffPartsPdf.push(`Fondsvolume: <span style="color:${fvKleurPdf};font-weight:700">${fmtVolume(r.fondsvolume.oud)} → ${fmtVolume(r.fondsvolume.nieuw)}</span>`);
+        diffPartsPdf.push(`Fondsomvang: <span style="color:${fvKleurPdf};font-weight:700">${fmtVolume(r.fondsvolume.oud)} → ${fmtVolume(r.fondsvolume.nieuw)}</span>`);
       }
       const diffsHtmlPdf = diffPartsPdf.length ? `<div style="font-size:9px;color:#555;margin-top:6px">${diffPartsPdf.join(' &nbsp;·&nbsp; ')}</div>` : '';
       tabelHtml += `<div style="border-left:3px solid ${kleur};background:#f9f8fc;border-radius:6px;padding:10px 14px;margin-bottom:10px;page-break-inside:avoid">
@@ -861,7 +861,7 @@ async function downloadPDF(){
 
     let disclaimerHtml = `<div style="border:1px solid #d0c4e0;border-radius:8px;padding:12px 16px;margin-top:6px">
       <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:10px;color:#6B2D84;margin-bottom:4px">BELANGRIJK</div>
-      <div style="font-size:9px;color:#1A1F36;line-height:1.5">Deze Jaarcheck is gebaseerd op door jou ingevoerde gegevens, waaronder trackingdifference (zelf opgezocht via trackingdifferences.com), Morningstar Rating/sterren en fondsvolume (beide zelf opgezocht via morningstar.nl). De inlegverdeling van je portefeuille wordt door deze check nooit aangepast — uitsluitend behouden/monitoren/wisselen per ETF. Dit is een hulpmiddel, geen beleggingsadvies. Controleer alle gegevens altijd zelf via officiële bronnen. Juistheid en volledigheid worden niet gegarandeerd.</div>
+      <div style="font-size:9px;color:#1A1F36;line-height:1.5">Deze Jaarcheck is gebaseerd op door jou ingevoerde gegevens, waaronder trackingdifference (zelf opgezocht via trackingdifferences.com), Morningstar Rating/sterren en fondsomvang (beide zelf opgezocht via morningstar.nl). De inlegverdeling van je portefeuille wordt door deze check nooit aangepast — uitsluitend behouden/monitoren/wisselen per ETF. Dit is een hulpmiddel, geen beleggingsadvies. Controleer alle gegevens altijd zelf via officiële bronnen. Juistheid en volledigheid worden niet gegarandeerd.</div>
     </div>`;
 
     let footerHtml = `<div style="margin-top:20px;padding-top:14px;border-top:1px solid #e8e2f0;text-align:center">

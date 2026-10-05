@@ -1003,10 +1003,10 @@ function renderOverzicht(){
       const volT = vorige && vorige.fondsvolume != null && rij.fondsvolume != null ? trend(vorige.fondsvolume, rij.fondsvolume) : '';
       const l1 = (rij.msStars || rij.ms) ? `<div class="mx-line"><span class="${sterT}">${esc(rij.msStars || '·')}</span> · <span class="${ratT}">${esc(rij.ms || '·')}</span></div>` : '';
       const delen = [];
-      if(rij.ter != null) delen.push(`<span class="${terT}">TER ${fmtTer(rij.ter)}</span>`);
+      if(rij.ter != null) delen.push(`<span class="${terT}">Kosten (TER) ${fmtTer(rij.ter)}</span>`);
       if(rij.trackingDiff != null) delen.push(`<span class="${rij.trackingDiff > 1.5 ? 'alert' : ''}">TD ${rij.trackingDiff > 0 ? '+' : ''}${Number(rij.trackingDiff).toFixed(1)}%</span>`);
       const l2 = delen.length ? `<div class="mx-line">${delen.join(' · ')}</div>` : '';
-      const l3 = rij.fondsvolume != null ? `<div class="mx-line"><span class="${volT}${rij.fondsvolume < 500 ? ' alert' : ''}">Fondsvolume ${fmtVolume(rij.fondsvolume)}</span></div>` : '';
+      const l3 = rij.fondsvolume != null ? `<div class="mx-line"><span class="${volT}${rij.fondsvolume < 500 ? ' alert' : ''}">Fondsomvang ${fmtVolume(rij.fondsvolume)}</span></div>` : '';
       const hercRegel = (rij.beslissing === 'monitoren' && ki === laatsteCheckKi) ? `<div class="mx-herc">${hcNu ? 'Hercheck <b>' + esc(maandJaar(hcNu.datum)) + '</b>' : 'Bij Jaarcheck <b>januari ' + volgendeJanuariJaar() + '</b>'}</div>` : '';
       const tip = rij.start ? '' : esc([rij.toelichting].concat(rij.signalen || []).filter(Boolean).join(' | '));
       h += `<td class="mx-cell" title="${tip}">${badge}${hercRegel}${l1}${l2}${l3}</td>`;
@@ -1015,7 +1015,7 @@ function renderOverzicht(){
     h += '</tr>';
   });
   h += '</tbody></table></div>';
-  h += `<div class="legenda"><span><span class="mx-line"><span class="beter">groen</span> = beter dan vorig jaar</span></span><span><span class="mx-line"><span class="slechter">roze</span> = slechter dan vorig jaar</span></span><span><span class="mx-line"><span class="alert">oranje</span> = onder de grens (TD boven 1,5% of fondsvolume onder €500 mln)</span></span></div>`;
+  h += `<div class="legenda"><span><span class="mx-line"><span class="beter">groen</span> = beter dan vorig jaar</span></span><span><span class="mx-line"><span class="slechter">roze</span> = slechter dan vorig jaar</span></span><span><span class="mx-line"><span class="alert">oranje</span> = onder de grens (TD boven 1,5% of fondsomvang onder €500 mln)</span></span></div>`;
   h += '<div class="legenda">Beweeg met je muis over een cel voor de toelichting van die check.</div>';
   if(!dossier.demo) h += '<div class="verwijder-rij"><button class="btn btn-gevaar" onclick="verwijderLaatsteCheck()">Verwijder de ' + (laatste.hercheck ? 'hercheck' : 'check') + ' van ' + esc(String(laatste.jaar)) + '</button><span>Per ongeluk een check toegevoegd? Je kunt altijd de laatste check weghalen. Sla daarna je dossier opnieuw op.</span></div>';
   h += '</div>';

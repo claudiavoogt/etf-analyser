@@ -8,20 +8,20 @@ import { nieuweEtfMeldingen, PETF } from '../../../lib/portefeuille';
  *
  * Voert Claudia's jaarlijkse kwaliteitscheck per ETF uit op basis van:
  *  - Benchmarkprestatie (trackingdifference, handmatig opgezocht door de klant op trackingdifferences.com)
- *  - Morningstar Analyst Rating (Gold/Silver/Bronze/Neutral/Negative)
+ *  - Morningstar MS Rating (Gold/Silver/Bronze/Neutral/Negative)
  *  - Trend in Morningstar sterren (dalend, 2 jaar op rij = signaal)
- *  - Fondsvolume (in miljoen euro): harde ondergrens + trend t.o.v. vorig jaar
+ *  - Fondsomvang (in miljoen euro): harde ondergrens + trend t.o.v. vorig jaar
  *  - Kosten (TER): harde bovengrens + trend t.o.v. vorig jaar
  *
  * KRITIEK — zelfde discipline als analyseer.ts: deze beslislogica leeft UITSLUITEND server-side.
  * Nooit deze functie of een kopie ervan teruginzetten in de HTML.
  *
  * Kernregel (nooit wijzigen zonder Claudia's expliciete akkoord):
- * - Analyst Rating Negative => altijd direct wisselen, ongeacht trackrecord.
- * - Fondsvolume onder de harde ondergrens (€250 mln) => altijd direct wisselen, geen uitzonderingen.
- * - Fondsvolume onder de minimale grens (€500 mln), 1e keer geconstateerd => NIET direct wisselen.
+ * - MS Rating Negative => altijd direct wisselen, ongeacht trackrecord.
+ * - Fondsomvang onder de harde ondergrens (€250 mln) => altijd direct wisselen, geen uitzonderingen.
+ * - Fondsomvang onder de minimale grens (€500 mln), 1e keer geconstateerd => NIET direct wisselen.
  *   Altijd minimaal "monitoren" (Check na 6 maanden), ongeacht de rating.
- * - Fondsvolume nog steeds onder de minimale grens bij de eérstvolgende jaarcheck erna (2 keer op rij)
+ * - Fondsomvang nog steeds onder de minimale grens bij de eérstvolgende jaarcheck erna (2 keer op rij)
  *   => dan pas wisselen, ongeacht rating of trackrecord — het fonds is niet hersteld na de waarschuwing.
  * - Onderperformance alleen (1 jaar) is nooit een wisselreden zolang rating Bronze of hoger is.
  * - Wisselen alleen bij: rating Neutral + 2 jaar op rij onderperformance (afwijking >= 1.5%).
@@ -37,7 +37,7 @@ import { nieuweEtfMeldingen, PETF } from '../../../lib/portefeuille';
  * - Presteert boven/rond benchmark (geen onderperformance) EN trackingdifference wél bekend EN rating in orde
  *   => toelichting is puur "Alles in orde, geen actie." (geen cijfers herhalen — alleen bij een probleem of
  *   aandachtspunt worden details getoond).
- * - Teruglopend fondsvolume t.o.v. vorig jaar (maar nog boven de minimale grens) is een signaal/waarschuwing,
+ * - Teruglopend fondsomvang t.o.v. vorig jaar (maar nog boven de minimale grens) is een signaal/waarschuwing,
  *   geen zelfstandige wisselreden — puur "in de gaten houden".
  * - Rating-signaal: zodra de rating dit jaar gedaald is (1 jaar), los signaal onder de ETF — zelfde opzet
  *   als het sterren-signaal. Bij 2 jaar op rij gedaald neemt kwaliteitSignaal/het Neutraal-traject het over
@@ -54,10 +54,10 @@ import { nieuweEtfMeldingen, PETF } from '../../../lib/portefeuille';
  *     "monitoren" (Check na 6 maanden), met een melding dat een handmatige hercheck nodig is.
  *   - Bij die hercheck nog steeds Neutral EN sterren nog steeds niet hersteld t.o.v. het startpunt van dit
  *     traject => wisselen (dit overschrijft de basisbeslissing).
- * - Rating Neutral + fondsvolume 2 checks op rij gedaald => wisselen.
+ * - Rating Neutral + fondsomvang 2 checks op rij gedaald => wisselen.
  * - Rating Neutral (los van trackingdifference) => minimaal "monitoren": hercheck over 6 maanden. Stond de ETF vorige
- *   check ook al op Neutral, zijn de sterren >= 3, niet lager dan vorige check, en is het fondsvolume niet gedaald
- *   => behouden (Neutral is dan prima). Zijn sterren of fondsvolume wel gedaald => monitoren (hercheck na 6 maanden).
+ *   check ook al op Neutral, zijn de sterren >= 3, niet lager dan vorige check, en is de fondsomvang niet gedaald
+ *   => behouden (Neutral is dan prima). Zijn sterren of fondsomvang wel gedaald => monitoren (hercheck na 6 maanden).
  * - Portefeuille-waarschuwing (los van de individuele beslissing per ETF): 2 of meer ETF's staan in dezelfde
  *   jaarcheck-run op Neutral => algemene waarschuwing bij de samenvatting. Bij 1 ETF op Neutral: geen melding.
  * - [AANGEPAST] Kosten (TER) tussen 0,5% en 0,55% zijn GEEN wisselreden meer, alleen een aandachtspunt (kostenSignaal).
@@ -76,7 +76,7 @@ const MINIMALE_FONDSOMVANG_HARD = 250; // miljoen euro — harde ondergrens, alt
 const MAX_TER_STANDAARD = 0.5; // % — kosten moeten in alle gevallen hieronder blijven, tenzij hoge kwaliteit (zie MAX_TER_ABSOLUUT)
 const MAX_TER_ABSOLUUT = 0.55; // % — harde bovengrens; ook bij 4-5 sterren + Bronze-of-hoger nooit hoger toegestaan
 
-// Fondsvolume in teksten leesbaar tonen: vanaf 1000 mln als miljard (60000 mln -> €60 miljard).
+// Fondsomvang in teksten leesbaar tonen: vanaf 1000 mln als miljard (60000 mln -> €60 miljard).
 function fmtVol(v: number | null | undefined): string {
   if (v == null || isNaN(v)) return '—';
   if (v >= 1000) return '€' + (v / 1000).toLocaleString('nl-NL', { maximumFractionDigits: 1 }) + ' miljard';
@@ -265,7 +265,7 @@ function bepaalBeslissing(opts: {
   if (msNieuw === 'Negative') {
     return {
       beslissing: 'wisselen',
-      toelichting: 'Analyst Rating is Negative — directe wisselgrond, ongeacht trackrecord of aantal jaren.',
+      toelichting: 'MS Rating is Negative — directe wisselgrond, ongeacht trackrecord of aantal jaren.',
       consecutiveUnderperformanceYears,
       onderBenchmark,
       fondsvolumeOnderMinimumJaren,
@@ -283,11 +283,11 @@ function bepaalBeslissing(opts: {
     };
   }
 
-  // Kernregel: fondsvolume onder de harde ondergrens — altijd direct wisselen, geen uitzonderingen.
+  // Kernregel: fondsomvang onder de harde ondergrens — altijd direct wisselen, geen uitzonderingen.
   if (fondsvolumeNieuw != null && fondsvolumeNieuw < MINIMALE_FONDSOMVANG_HARD) {
     return {
       beslissing: 'wisselen',
-      toelichting: `Fondsvolume (${fmtVol(fondsvolumeNieuw)}) zit onder de harde ondergrens van €${MINIMALE_FONDSOMVANG_HARD} mln — directe wisselgrond, geen uitzonderingen.`,
+      toelichting: `Fondsomvang (${fmtVol(fondsvolumeNieuw)}) zit onder de harde ondergrens van €${MINIMALE_FONDSOMVANG_HARD} mln — directe wisselgrond, geen uitzonderingen.`,
       consecutiveUnderperformanceYears,
       onderBenchmark,
       fondsvolumeOnderMinimumJaren,
@@ -329,11 +329,11 @@ function bepaalBeslissing(opts: {
 
   // Kosten (TER) tussen de standaardgrens (0,5%) en de absolute max (0,55%): GEEN wisselreden, alleen een aandachtspunt (kostenSignaal).
 
-  // Kernregel: fondsvolume zit al voor de tweede keer op rij onder de minimale grens — niet hersteld na de waarschuwing.
+  // Kernregel: fondsomvang zit al voor de tweede keer op rij onder de minimale grens — niet hersteld na de waarschuwing.
   if (fondsvolumeOnderMinimumJaren >= 2) {
     return {
       beslissing: 'wisselen',
-      toelichting: `Fondsvolume zit voor het tweede jaar op rij onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln (nu ${fmtVol(fondsvolumeNieuw)}) — vorig jaar al gewaarschuwd, het fonds is niet hersteld. Wissel, ongeacht rating of trackrecord.`,
+      toelichting: `Fondsomvang zit voor het tweede jaar op rij onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln (nu ${fmtVol(fondsvolumeNieuw)}) — vorig jaar al gewaarschuwd, het fonds is niet hersteld. Wissel, ongeacht rating of trackrecord.`,
       consecutiveUnderperformanceYears,
       onderBenchmark,
       fondsvolumeOnderMinimumJaren,
@@ -472,10 +472,10 @@ function bepaalBeslissing(opts: {
           toelichting: `Eerste jaar onder benchmark (${trackingDiff!.toFixed(2)}%) + Neutral rating: vroeg signaal. Verhoog monitoring, hercheck over 6 maanden. Nog niet wisselen.`,
         };
       } else {
-        // Geen Analyst Rating beschikbaar (komt vaker voor bij kleinere ETF's, niet elke ETF wordt door Morningstar-analisten gevolgd)
+        // Geen MS Rating beschikbaar (komt vaker voor bij kleinere ETF's, niet elke ETF wordt door Morningstar-analisten gevolgd)
         basis = {
           beslissing: 'monitoren',
-          toelichting: `Eerste jaar onder benchmark (${trackingDiff!.toFixed(2)}%). Geen Analyst Rating beschikbaar voor deze ETF op Morningstar, komt vaker voor bij kleinere ETF's. Beoordeel dit jaar zelf op basis van de sterren en trackrecord.`,
+          toelichting: `Eerste jaar onder benchmark (${trackingDiff!.toFixed(2)}%). Geen MS Rating beschikbaar voor deze ETF op Morningstar, komt vaker voor bij kleinere ETF's. Beoordeel dit jaar zelf op basis van de sterren en trackrecord.`,
         };
       }
     } else {
@@ -493,20 +493,20 @@ function bepaalBeslissing(opts: {
       } else {
         basis = {
           beslissing: 'monitoren',
-          toelichting: `Twee jaar op rij onder benchmark (${trackingDiff!.toFixed(2)}%). Geen Analyst Rating beschikbaar voor deze ETF op Morningstar, komt vaker voor bij kleinere ETF's. Beoordeel dit jaar zelf op basis van de sterren en trackrecord.`,
+          toelichting: `Twee jaar op rij onder benchmark (${trackingDiff!.toFixed(2)}%). Geen MS Rating beschikbaar voor deze ETF op Morningstar, komt vaker voor bij kleinere ETF's. Beoordeel dit jaar zelf op basis van de sterren en trackrecord.`,
         };
       }
     }
   }
 
-  // Fondsvolume 1e keer onder de minimale grens: nooit een reden om automatisch te wisselen, maar wél
+  // Fondsomvang 1e keer onder de minimale grens: nooit een reden om automatisch te wisselen, maar wél
   // minimaal "monitoren" — als de basisbeslissing nog "behouden" was, wordt die opgetild naar "monitoren".
   let fondsvolumeIsHoofdreden = false;
   if (fondsvolumeOnderMinimumJaren === 1 && basis.beslissing === 'behouden') {
     const ratingNote = ratingRang(msNieuw) >= 3 ? `, rating ${msNieuw || '(onbekend)'} nog voldoende` : '';
     basis = {
       beslissing: 'monitoren',
-      toelichting: `Fondsvolume is onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln gezakt (nu ${fmtVol(fondsvolumeNieuw)})${ratingNote}. Hercheck over 6 maanden — blijft het fonds klein bij de volgende jaarcheck, dan wisselen.`,
+      toelichting: `Fondsomvang is onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln gezakt (nu ${fmtVol(fondsvolumeNieuw)})${ratingNote}. Hercheck over 6 maanden — blijft het fonds klein bij de volgende jaarcheck, dan wisselen.`,
     };
     fondsvolumeIsHoofdreden = true;
     tdIsHoofdreden = false;
@@ -533,13 +533,13 @@ function bepaalBeslissing(opts: {
   }
 
   // Rating Neutral => minimaal "monitoren" (hercheck over 6 maanden), ook zonder onderperformance.
-  // Uitzondering: stond vorige check al op Neutral, sterren >= 3 en fondsvolume niet gedaald => Neutral is prima, behouden.
+  // Uitzondering: stond vorige check al op Neutral, sterren >= 3 en fondsomvang niet gedaald => Neutral is prima, behouden.
   // Alleen als er nog niets zwaarders uitkwam (wisselen/monitoren blijven zoals ze zijn).
-  // Neutral + fondsvolume 2 checks op rij gedaald => wisselen (tenzij al wisselen).
+  // Neutral + fondsomvang 2 checks op rij gedaald => wisselen (tenzij al wisselen).
   if (isNeutralNu && (fondsvolumeGedaaldJaren || 0) >= 2 && basis.beslissing !== 'wisselen') {
     basis = {
       beslissing: 'wisselen',
-      toelichting: `Rating staat op Neutral en het fondsvolume is nu ${fondsvolumeGedaaldJaren} checks op rij gedaald (${fmtVol(fondsvolumeOud)} → ${fmtVol(fondsvolumeNieuw)}). Neutral is prima zolang het fonds stabiel blijft, maar dit herstelt niet. Wissel.`,
+      toelichting: `Rating staat op Neutral en de fondsomvang is nu ${fondsvolumeGedaaldJaren} checks op rij gedaald (${fmtVol(fondsvolumeOud)} → ${fmtVol(fondsvolumeNieuw)}). Neutral is prima zolang het fonds stabiel blijft, maar dit herstelt niet. Wissel.`,
     };
     tdIsHoofdreden = false;
   }
@@ -551,7 +551,7 @@ function bepaalBeslissing(opts: {
     basis = {
       beslissing: 'monitoren',
       toelichting: wasNeutralVorigJaar
-        ? `Rating blijft Neutral, maar de sterren of het fondsvolume zijn gedaald. Nog niet wisselen, wel in de gaten houden: hercheck over 6 maanden.`
+        ? `Rating blijft Neutral, maar de sterren of de fondsomvang zijn gedaald. Nog niet wisselen, wel in de gaten houden: hercheck over 6 maanden.`
         : `Rating is Neutral geworden${msOud ? ` (vorige check: ${msOud})` : ''}. Nog niet wisselen, wel in de gaten houden: hercheck over 6 maanden.`,
     };
     tdIsHoofdreden = false;
@@ -722,9 +722,9 @@ export async function POST(request: NextRequest) {
       // Signaal-tekst: alleen tonen als het al niet de hoofdreden van de beslissing zelf is
       // (anders staat het al, uitgebreider, in de toelichting hierboven).
       const fondsvolumeSignaal = (fondsvolumeOnderMinimumJaren === 1 && !fondsvolumeIsHoofdreden)
-        ? `Fondsvolume zit ook onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln (nu ${fmtVol(fondsvolumeNieuw)}). Hercheck over 6 maanden — blijft het zo, dan volgend jaar wisselen.`
+        ? `Fondsomvang zit ook onder de minimale grens van €${MINIMALE_FONDSOMVANG} mln (nu ${fmtVol(fondsvolumeNieuw)}). Hercheck over 6 maanden — blijft het zo, dan volgend jaar wisselen.`
         : (fondsvolumeGedaald && !fondsvolumeOnderMinimum)
-          ? `Fondsvolume loopt terug (${fmtVol(fondsvolumeOud)} → ${fmtVol(fondsvolumeNieuw)}). Nog boven de minimale grens van €${MINIMALE_FONDSOMVANG} mln, maar wel een aandachtspunt om te volgen.`
+          ? `Fondsomvang loopt terug (${fmtVol(fondsvolumeOud)} → ${fmtVol(fondsvolumeNieuw)}). Nog boven de minimale grens van €${MINIMALE_FONDSOMVANG} mln, maar wel een aandachtspunt om te volgen.`
           : null;
 
       const terGestegen = terOud != null && terNieuw != null && terNieuw > terOud;
@@ -925,7 +925,7 @@ export async function POST(request: NextRequest) {
       if (!nieuweIds.has(r.id) || r.beslissing !== 'behouden') return;
       if (!nieuweEtfMeldingenLijst.some(m => m.ids.includes(r.id))) return;
       if (typeof r.toelichting === 'string' && r.toelichting.includes('Alles in orde, geen actie.')) {
-        r.toelichting = r.toelichting.replace('Alles in orde, geen actie.', 'Rating, sterren, kosten en fondsvolume zijn in orde, maar lees de melding hieronder over je nieuwe ETF.');
+        r.toelichting = r.toelichting.replace('Alles in orde, geen actie.', 'Rating, sterren, kosten en fondsomvang zijn in orde, maar lees de melding hieronder over je nieuwe ETF.');
       }
     });
 
