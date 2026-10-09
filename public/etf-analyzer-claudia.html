@@ -966,6 +966,7 @@ function slaOpAlsJSON(){
     msStars: document.getElementById(id+'-stars')?.value || '',
     ms: document.getElementById(id+'-ms')?.value || '',
     div: document.getElementById(id+'-div')?.value || '',
+    exchange: document.getElementById(id+'-exchange')?.value || '',
     ter: parseFloat(document.getElementById(id+'-ter')?.value) || null,
     aum: (function(){const v=parseFloat(document.getElementById(id+'-aum')?.value);if(isNaN(v)||v===0)return null;const u=document.getElementById(id+'-aum-unit')?.value;return u==='mrd'?v*1000:v;})(),
     holdings: parseFloat(document.getElementById(id+'-holdings')?.value) || null,
@@ -1019,6 +1020,7 @@ function laadUitJSON(input){
       setVal(id+'-stars', etf.msStars);
       setVal(id+'-ms', etf.ms);
       setVal(id+'-div', etf.div);
+      setVal(id+'-exchange', etf.exchange);
       setVal(id+'-ter', etf.ter);
       setVal(id+'-holdings', etf.holdings);
       setVal(id+'-r5', etf.r5);
